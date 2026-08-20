@@ -24,6 +24,7 @@ try:
 except ImportError:
     cv2 = None
 
+from data.landmarks import crop_hand
 
 class PredictionSmoother:
     """
@@ -53,26 +54,6 @@ class PredictionSmoother:
         values, counts = np.unique(self.buffer, return_counts=True)
         return config.IDX_TO_CLASS[int(values[counts.argmax()])]
 
-
-def crop_hand(frame_bgr, detector, padding: float = 0.25):
-    """
-    Locate the hand with MediaPipe and return a square crop around it.
-
-    THIS STEP IS ESSENTIAL AND EASY TO OVERLOOK. Your model was trained on tight
-    crops of hands. A raw webcam frame is a wide shot of you, your desk, and your
-    room. Feed that in directly and accuracy collapses -- not because the model is
-    bad, but because you are showing it a different distribution than it trained on.
-
-    This is train/serve skew, and it is the single most common reason a student
-    demo fails after good test numbers.
-
-    TODO:
-      1. Convert BGR -> RGB and run the detector.
-      2. From the 21 landmarks, take min/max x and y to get a bounding box.
-      3. Expand by `padding`, square it off, clamp to the frame edges.
-      4. Return the crop, or None if no hand was found.
-    """
-    raise NotImplementedError("See the TODO above.")
 
 
 def main():

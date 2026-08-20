@@ -51,10 +51,10 @@ METADATA_HEADER = ["path", "label", "signer_id", "session_id"]
 
 
 def append_metadata(rows: list[dict]) -> None:
-    """Append rows to metadata.csv, writing the header if the file is new."""
-    exists = config.METADATA_CSV.exists()
+    """Append rows to raw_metadata.csv, writing the header if the file is new."""
+    exists = config.RAW_METADATA_CSV.exists()
 
-    with open(config.METADATA_CSV, "a", newline="") as f:
+    with open(config.RAW_METADATA_CSV, "a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=METADATA_HEADER)
         if not exists:
             writer.writeheader()
@@ -75,7 +75,7 @@ def main() -> None:
     parser.add_argument("--camera", type=int, default=0)
     args = parser.parse_args()
 
-    out_dir = config.PROCESSED_DIR / args.signer / args.session / args.label
+    out_dir = config.RAW_DIR / args.signer / args.session / args.label
     out_dir.mkdir(parents=True, exist_ok=True)
 
     cap = cv2.VideoCapture(args.camera)
@@ -114,7 +114,7 @@ def main() -> None:
             cv2.imwrite(str(out_dir / filename), frame)
 
             rows.append({
-                "path": str((out_dir / filename).relative_to(config.PROCESSED_DIR)),
+                "path": str((out_dir / filename).relative_to(config.RAW_DIR)),
                 "label": args.label,
                 "signer_id": args.signer,
                 "session_id": args.session,
@@ -135,7 +135,7 @@ def main() -> None:
     if rows:
         append_metadata(rows)
         print(f"[capture] saved {len(rows)} images -> {out_dir}")
-        print(f"[capture] metadata -> {config.METADATA_CSV}")
+        print(f"[capture] metadata -> {config.RAW_METADATA_CSV}")
     else:
         print("[capture] nothing saved")
 
