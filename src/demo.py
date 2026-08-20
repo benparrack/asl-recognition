@@ -26,6 +26,10 @@ except ImportError:
 
 from data.landmarks import crop_hand
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 class PredictionSmoother:
     """
     Majority vote over a sliding window of recent frames.

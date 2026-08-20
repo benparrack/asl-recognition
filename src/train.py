@@ -23,6 +23,9 @@ import torch.nn as nn
 import config
 from data.dataset import build_dataloaders
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 # ---------------------------------------------------------------------------
 def set_seed(seed: int = config.SEED):

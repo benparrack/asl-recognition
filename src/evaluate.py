@@ -19,6 +19,9 @@ import torch
 import config
 from data.dataset import build_dataloaders
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 @torch.no_grad()
 def collect_predictions(model, loader, device):
