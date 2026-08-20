@@ -32,6 +32,11 @@ try:
 except ImportError:  # keep the module importable without the dependency
     mp = None
 
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
 
 def build_detector(static_mode: bool = True, min_confidence: float = 0.5):
     """
@@ -99,6 +104,134 @@ def normalise_landmarks(landmarks: np.ndarray) -> np.ndarray:
         lm /= scale
 
     return lm.flatten()
+
+
+def crop_hand(frame_bgr: np.ndarray, detector, padding: float = 0.25) -> np.ndarray | None:
+    """
+    Locate the hand in a BGR image and return a square crop around it.
+
+    Returns None when no hand is detected or the crop would be degenerate.
+
+    THIS FUNCTION HAS EXACTLY ONE DEFINITION FOR A REASON. Both the offline
+    preprocessing script and the live webcam demo call it. If the demo cropped
+    differently from preprocessing, the model would see a different distribution
+    of images at inference than it trained on -- train/serve skew -- and accuracy
+    would fall for reasons that look like a model bug but are not. One function,
+    two callers, guaranteed consistent.
+
+    ---------------------------------------------------------------- coordinates
+    Three systems are in play, and mixing them is the main source of bugs here:
+
+      1. MediaPipe returns NORMALISED coordinates: lm.x and lm.y are fractions of
+         image width and height, roughly 0..1, independent of resolution.
+      2. Slicing an image needs INTEGER PIXELS.
+      3. NumPy indexes ROWS FIRST, so frame.shape is (height, width, channels)
+         and the slice is frame[y1:y2, x1:x2] -- y before x.
+
+    Point 3 is backwards from the (x, y) convention you are used to. Swapping
+    them raises no error; it just silently crops the wrong region.
+    """
+    if cv2 is None:
+        raise ImportError("opencv-python is not installed: pip install opencv-python")
+
+    # 1. Detect. OpenCV loads BGR; MediaPipe expects RGB. Getting this wrong does
+    #    not crash -- it just quietly degrades detection, which is worse.
+    image_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+    result = detector.process(image_rgb)
+
+    if not result.multi_hand_landmarks:
+        return None
+
+    # 2. Normalised coordinates -> pixels.
+    h, w = frame_bgr.shape[:2]
+    hand = result.multi_hand_landmarks[0]
+    xs = [lm.x * w for lm in hand.landmark]
+    ys = [lm.y * h for lm in hand.landmark]
+
+    # 3. Bounding box, expressed as centre + half-size so squaring is trivial.
+    x_min, x_max = min(xs), max(xs)
+    y_min, y_max = min(ys), max(ys)
+
+    cx = (x_min + x_max) / 2.0
+    cy = (y_min + y_max) / 2.0
+
+    # max() of width and height makes the box square; padding stops fingertips
+    # being clipped, since MediaPipe's box hugs the landmarks tightly and the
+    # fingertips ARE the landmarks at the boundary.
+    half = max(x_max - x_min, y_max - y_min) / 2.0
+    half *= (1.0 + padding)
+
+    # 4. Integers, then clamp to the frame.
+    #    Clamping is not optional: a negative index in NumPy means "count from the
+    #    end", so an unclamped negative silently wraps to the opposite side of the
+    #    image and you get a crop of the wrong thing with no error.
+    x1, x2 = int(round(cx - half)), int(round(cx + half))
+    y1, y2 = int(round(cy - half)), int(round(cy + half))
+
+    x1, y1 = max(0, x1), max(0, y1)
+    x2, y2 = min(w, x2), min(h, y2)
+
+    # Reject slivers: a hand mostly out of frame yields a few-pixel crop that
+    # causes confusing errors much further downstream.
+    if (x2 - x1) < 10 or (y2 - y1) < 10:
+        return None
+
+    # 5. Slice. y before x.
+    return frame_bgr[y1:y2, x1:x2]
+
+
+def crop_hand_square(frame_bgr: np.ndarray, detector, padding: float = 0.25):
+    """
+    As crop_hand(), but pads with a border instead of clamping, so the result is
+    always square even when the hand sits against a frame edge.
+
+    Why you might want this: clamping can return a non-square crop near the
+    edges. Resize() will then stretch it, distorting the handshape -- and since
+    hands near the edge are exactly the awkward cases, you are distorting your
+    hardest examples.
+
+    Whether it measurably helps is an empirical question. Trying both and
+    reporting the difference is a cheap, legitimate ablation for your write-up.
+    """
+    if cv2 is None:
+        raise ImportError("opencv-python is not installed: pip install opencv-python")
+
+    image_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+    result = detector.process(image_rgb)
+
+    if not result.multi_hand_landmarks:
+        return None
+
+    h, w = frame_bgr.shape[:2]
+    hand = result.multi_hand_landmarks[0]
+    xs = [lm.x * w for lm in hand.landmark]
+    ys = [lm.y * h for lm in hand.landmark]
+
+    cx = (min(xs) + max(xs)) / 2.0
+    cy = (min(ys) + max(ys)) / 2.0
+    half = max(max(xs) - min(xs), max(ys) - min(ys)) / 2.0 * (1.0 + padding)
+
+    x1, x2 = int(round(cx - half)), int(round(cx + half))
+    y1, y2 = int(round(cy - half)), int(round(cy + half))
+
+    # How far the desired box overhangs each edge.
+    pad_left = max(0, -x1)
+    pad_top = max(0, -y1)
+    pad_right = max(0, x2 - w)
+    pad_bottom = max(0, y2 - h)
+
+    crop = frame_bgr[max(0, y1):min(h, y2), max(0, x1):min(w, x2)]
+
+    if crop.size == 0:
+        return None
+
+    if pad_left or pad_top or pad_right or pad_bottom:
+        crop = cv2.copyMakeBorder(
+            crop, pad_top, pad_bottom, pad_left, pad_right,
+            cv2.BORDER_CONSTANT, value=(0, 0, 0),
+        )
+
+    return crop
 
 
 def extract_dataset_landmarks(df, image_root, out_path=config.LANDMARKS_NPZ):

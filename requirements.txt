@@ -8,7 +8,7 @@ pandas
 pillow
 
 # Landmarks + webcam
-mediapipe
+mediapipe==0.10.14   # 0.10.31+ broke the legacy solutions API
 opencv-python
 
 # Baselines, metrics, figures
