@@ -1,121 +1,221 @@
 """
-Live webcam demo -- the thing that makes people care about your project.
+Live webcam demo.
 
-Run:  python src/demo.py --checkpoint checkpoints/cnn_best.pt
+Run:
+    python src/demo.py --checkpoint checkpoints/cnn_smoketest_best.pt
 
-Build this EARLY, not the night before. It is the fastest way to discover that
-your 97% test accuracy does not survive contact with your actual webcam, and
-that discovery is much more useful in week 8 than in week 14.
+Controls:
+    q       quit
+    c       clear the sentence
+    SPACE   append the current letter to the sentence
+    d       toggle the debug view (shows the model's actual input)
+
+WHY THE DEBUG VIEW MATTERS
+==========================
+Press 'd' and you see the exact 128x128 crop being fed to the network. If live
+accuracy is worse than your test accuracy, look at that panel first. Nine times
+out of ten the crop looks different from your training images -- different
+framing, different colour, hand too small in frame -- and that mismatch is
+train/serve skew, not a model failure.
 """
 
 from __future__ import annotations
 
 import argparse
+import sys
+import time
 from collections import deque
+from pathlib import Path
 
+import cv2
 import numpy as np
 import torch
+from PIL import Image
 
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_ROOT))
 
-import config
+import config  # noqa: E402
+from data.dataset import build_transforms  # noqa: E402
+from data.landmarks import build_detector, detect_and_crop  # noqa: E402
 
-# pip install opencv-python mediapipe
-try:
-    import cv2
-except ImportError:
-    cv2 = None
-
-from data.landmarks import crop_hand
 
 class PredictionSmoother:
     """
     Majority vote over a sliding window of recent frames.
 
     Raw per-frame predictions flicker badly -- at 30 fps a bare argmax produces
-    an unreadable strobe of letters. Averaging over ~15 frames (half a second)
-    turns that into something a person can actually read.
+    an unreadable strobe. Voting over ~15 frames (half a second) turns that into
+    something a person can read.
 
-    This is also the seed of the Tier 2 extension: once you are reasoning over a
-    window of frames rather than one, you are most of the way to handling J and Z,
-    which need motion by definition.
+    Low-confidence frames append a sentinel (-1) rather than being ignored, so
+    that when your hand leaves the frame the buffer actually drains and the
+    display clears instead of freezing on the last confident guess.
     """
 
     def __init__(self, window: int = 15, min_confidence: float = 0.6):
         self.buffer: deque[int] = deque(maxlen=window)
         self.min_confidence = min_confidence
 
-    def update(self, class_idx: int, confidence: float) -> str | None:
-        if confidence < self.min_confidence:
-            return None
+    def update(self, class_idx: int | None, confidence: float = 0.0) -> str | None:
+        if class_idx is None or confidence < self.min_confidence:
+            self.buffer.append(-1)
+        else:
+            self.buffer.append(class_idx)
 
-        self.buffer.append(class_idx)
         if len(self.buffer) < self.buffer.maxlen // 2:
             return None
 
         values, counts = np.unique(self.buffer, return_counts=True)
-        return config.IDX_TO_CLASS[int(values[counts.argmax()])]
+        winner = int(values[counts.argmax()])
+
+        return None if winner < 0 else config.IDX_TO_CLASS[winner]
 
 
+def load_model(checkpoint_path: str, device: torch.device):
+    """Rebuild the architecture recorded in the checkpoint and load its weights."""
+    ckpt = torch.load(checkpoint_path, map_location=device)
 
-def main():
+    if ckpt.get("classes") != config.CLASSES:
+        raise RuntimeError(
+            f"Checkpoint was trained on {ckpt.get('classes')}, but config.CLASSES "
+            f"is {config.CLASSES}. Label indices would not line up."
+        )
+
+    name = ckpt["args"]["model"]
+    if name == "cnn":
+        from models.cnn import ASLNet
+        model = ASLNet()
+    elif name == "transfer":
+        from models.baselines import TransferNet
+        model = TransferNet()
+    elif name == "mlp":
+        raise ValueError("the landmark MLP needs a different demo path")
+    else:
+        raise ValueError(f"unknown model: {name}")
+
+    model.load_state_dict(ckpt["model_state"])
+    model.to(device)
+    model.eval()   # dropout off, BatchNorm on running stats -- essential
+
+    print(f"[demo] {name} from epoch {ckpt['epoch']}, val acc {ckpt['val_acc']:.4f}")
+    return model
+
+
+def draw_overlay(frame, bbox, letter, confidence, sentence, fps):
+    """All the cv2 drawing, kept out of the main loop for readability."""
+    h, w = frame.shape[:2]
+
+    if bbox is not None:
+        x1, y1, x2, y2 = bbox
+        colour = (0, 200, 0) if letter else (0, 165, 255)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), colour, 2)
+
+        if letter:
+            cv2.putText(frame, f"{letter}  {confidence:.0%}", (x1, max(28, y1 - 10)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, colour, 2)
+    else:
+        cv2.putText(frame, "no hand detected", (12, 32),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 220), 2)
+
+    # Sentence bar along the bottom.
+    cv2.rectangle(frame, (0, h - 56), (w, h), (0, 0, 0), -1)
+    cv2.putText(frame, "".join(sentence) or "(empty)", (12, h - 20),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+
+    cv2.putText(frame, f"{fps:.0f} fps", (w - 96, 28),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (180, 180, 180), 1)
+    return frame
+
+
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--camera", type=int, default=0)
-    parser.add_argument("--window", type=int, default=15)
+    parser.add_argument("--window", type=int, default=15,
+                        help="frames to vote over")
+    parser.add_argument("--min-confidence", type=float, default=0.6)
+    parser.add_argument("--padding", type=float, default=0.25,
+                        help="MUST match what preprocess.py used")
     args = parser.parse_args()
 
-    if cv2 is None:
-        raise ImportError("pip install opencv-python mediapipe")
-
     device = config.DEVICE
-    ckpt = torch.load(args.checkpoint, map_location=device)
-    print(f"[demo] loaded checkpoint (val acc {ckpt['val_acc']:.4f})")
+    model = load_model(args.checkpoint, device)
 
-    # TODO: rebuild the model, load_state_dict, model.eval()
-    # TODO: build a MediaPipe detector with static_mode=False (tracking mode is
-    #       faster and steadier on video than treating each frame independently)
+    # static_mode=False enables tracking between frames: faster and steadier on
+    # video than treating every frame as an unrelated image.
+    detector = build_detector(static_mode=False)
+
+    # The SAME transforms validation used -- no augmentation, same resize, same
+    # normalisation. Importing build_transforms rather than rewriting it here
+    # guarantees they cannot drift apart.
+    transform = build_transforms(train=False)
 
     cap = cv2.VideoCapture(args.camera)
     if not cap.isOpened():
         raise RuntimeError(
-            f"Could not open camera {args.camera}. On Linux, check that your user "
-            "is in the 'video' group and that /dev/video0 exists. `ls /dev/video*` "
-            "and `v4l2-ctl --list-devices` are the tools for diagnosing this."
+            f"Could not open camera {args.camera}. Check `ls /dev/video*` and that "
+            "your user is in the 'video' group."
         )
 
-    smoother = PredictionSmoother(window=args.window)
+    smoother = PredictionSmoother(args.window, args.min_confidence)
     sentence: list[str] = []
+    show_debug = False
+    letter, confidence = None, 0.0
+    fps, last_t = 0.0, time.time()
 
-    print("[demo] q quits, c clears the sentence, space appends the current letter")
+    print("[demo] q quit | c clear | SPACE append | d debug view")
 
     while True:
         ok, frame = cap.read()
         if not ok:
             break
 
-        frame = cv2.flip(frame, 1)   # mirror, so moving right moves right on screen
+        # Mirror -- capture_data.py also flipped, so this keeps handedness
+        # consistent with training. Remove it in one place and you must remove
+        # it in both.
+        frame = cv2.flip(frame, 1)
 
-        # TODO:
-        #   crop = crop_hand(frame, detector)
-        #   if crop is not None:
-        #       apply the SAME transforms as validation -- not the training
-        #       augmentations, and do not forget the normalisation. Mismatched
-        #       preprocessing between training and inference is the second most
-        #       common cause of a demo that works on disk and fails live.
-        #       run the model, softmax, take max -> (confidence, class_idx)
-        #       letter = smoother.update(class_idx, confidence)
-        #   draw the bounding box, current letter, confidence, and sentence
+        crop, bbox = detect_and_crop(frame, detector, padding=args.padding)
 
+        if crop is not None:
+            # BGR (OpenCV) -> RGB PIL, matching how ASLImageDataset loaded
+            # training images. Skip the colour conversion and every channel is
+            # swapped relative to training.
+            pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+            tensor = transform(pil).unsqueeze(0).to(device)   # add batch dim
+
+            with torch.no_grad():
+                probs = torch.softmax(model(tensor), dim=1)[0]
+
+            conf, idx = probs.max(dim=0)
+            confidence = conf.item()
+            letter = smoother.update(int(idx.item()), confidence)
+        else:
+            letter = smoother.update(None)
+            confidence = 0.0
+
+        now = time.time()
+        fps = 0.9 * fps + 0.1 / max(now - last_t, 1e-6)   # smoothed
+        last_t = now
+
+        frame = draw_overlay(frame, bbox, letter, confidence, sentence, fps)
         cv2.imshow("ASL Fingerspelling", frame)
+
+        if show_debug and crop is not None:
+            cv2.imshow("model input", cv2.resize(crop, (256, 256)))
 
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
             break
-        if key == ord("c"):
+        elif key == ord("c"):
             sentence.clear()
+        elif key == ord(" ") and letter:
+            sentence.append(letter[0] if len(letter) == 1 else letter + " ")
+        elif key == ord("d"):
+            show_debug = not show_debug
+            if not show_debug:
+                cv2.destroyWindow("model input")
 
     cap.release()
     cv2.destroyAllWindows()
