@@ -1,0 +1,19 @@
+# Core
+torch>=2.0
+torchvision>=0.15
+
+# Data
+numpy
+pandas
+pillow
+
+# Landmarks + webcam
+mediapipe
+opencv-python
+
+# Baselines, metrics, figures
+scikit-learn
+matplotlib
+
+# Exploration
+jupyterlab

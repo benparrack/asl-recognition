@@ -1,0 +1,18 @@
+# Never commit datasets or weights -- they are large and they are not source.
+data/raw/
+data/processed/
+checkpoints/
+*.pt
+*.pth
+*.npz
+
+.venv/
+__pycache__/
+*.py[cod]
+
+# Notebooks version-control badly: outputs create huge diffs and merge conflicts.
+# Clear outputs before committing, or use nbstripout.
+.ipynb_checkpoints/
+
+results/*.png
+!results/.gitkeep
