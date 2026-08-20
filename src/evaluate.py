@@ -16,12 +16,12 @@ import json
 import numpy as np
 import torch
 
-import config
-from data.dataset import build_dataloaders
-
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import config
+from data.dataset import build_dataloaders
 
 @torch.no_grad()
 def collect_predictions(model, loader, device):

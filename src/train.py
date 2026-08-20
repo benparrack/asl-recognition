@@ -20,12 +20,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-import config
-from data.dataset import build_dataloaders
-
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import config
+from data.dataset import build_dataloaders
 
 # ---------------------------------------------------------------------------
 def set_seed(seed: int = config.SEED):
@@ -57,51 +57,46 @@ def build_model(name: str) -> nn.Module:
 
 # ---------------------------------------------------------------------------
 def train_one_epoch(model, loader, criterion, optimizer, device) -> tuple[float, float]:
-    """
-    One pass over the training set. Returns (mean_loss, accuracy).
+    running_loss = 0.0
+    correct = 0
+    total = 0
 
-    TODO -- the five-step loop, which you should be able to write from memory
-    by the end of this project:
+    model.train()
 
-        model.train()
-        for inputs, targets in loader:
-            inputs, targets = inputs.to(device), targets.to(device)
+    for inputs, targets in loader:
+        inputs, targets = inputs.to(device), targets.to(device)
 
-            optimizer.zero_grad()        # 1. clear old gradients
-            outputs = model(inputs)      # 2. forward pass
-            loss = criterion(outputs, targets)   # 3. compute loss
-            loss.backward()              # 4. backpropagate
-            optimizer.step()             # 5. update weights
+        optimizer.zero_grad()                 # 1. clear old gradients
+        outputs = model(inputs)               # 2. forward pass
+        loss = criterion(outputs, targets)    # 3. compute loss
+        loss.backward()                       # 4. backpropagate
+        optimizer.step()                      # 5. update weights
 
-            # accumulate loss * batch_size and correct predictions
+        running_loss += loss.item() * targets.size(0)
+        correct += (outputs.argmax(dim=1) == targets).sum().item()
+        total += targets.size(0)
 
-    Two traps:
-      - Forgetting zero_grad() makes gradients accumulate across batches. Training
-        will not crash; it will just quietly fail to converge.
-      - Accumulate `loss.item()`, never the tensor itself. Keeping the tensor
-        retains the whole computation graph and you will exhaust your 8 GB of
-        VRAM within a few dozen batches.
-    """
-    raise NotImplementedError("Write the training loop here.")
-
+    return running_loss / total, correct / total
 
 @torch.no_grad()
 def evaluate(model, loader, criterion, device) -> tuple[float, float]:
-    """
-    Evaluate without updating weights. Returns (mean_loss, accuracy).
+    running_loss = 0.0
+    correct = 0
+    total = 0
 
-    model.eval() matters and is not optional: it switches BatchNorm to using its
-    running statistics and disables Dropout. Forget it and your validation numbers
-    will be wrong in a way that is hard to spot.
+    model.eval()
 
-    The @torch.no_grad() decorator stops autograd building a graph, which roughly
-    halves memory use and speeds evaluation up substantially.
+    for inputs, targets in loader:
+        inputs, targets = inputs.to(device), targets.to(device)
 
-    TODO: mirror the training loop without the backward pass.
-    """
-    raise NotImplementedError("Write the evaluation loop here.")
+        outputs = model(inputs)               # 2. forward pass
+        loss = criterion(outputs, targets)    # 3. compute loss
 
+        running_loss += loss.item() * targets.size(0)
+        correct += (outputs.argmax(dim=1) == targets).sum().item()
+        total += targets.size(0)
 
+    return running_loss / total, correct / total
 # ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="Train an ASL fingerspelling classifier")
@@ -109,6 +104,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=config.NUM_EPOCHS)
     parser.add_argument("--lr", type=float, default=config.LEARNING_RATE)
     parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE)
+    parser.add_argument("--split", default="signer", choices=["signer", "random"])
     parser.add_argument("--tag", default="", help="suffix for checkpoint/result files")
     args = parser.parse_args()
 
@@ -119,7 +115,7 @@ def main():
         print(f"[init] gpu: {torch.cuda.get_device_name(0)}")
 
     kind = "landmark" if args.model == "mlp" else "image"
-    train_loader, val_loader, test_loader = build_dataloaders(kind=kind)
+    train_loader, val_loader, test_loader = build_dataloaders(kind=kind, split=args.split)
 
     model = build_model(args.model).to(device)
 

@@ -11,3 +11,16 @@ the most so I will try to move slower for the future tests, ben_s2 and bens3
 - MediaPipe detection failure rate: 2.5%
   -> this is the pipeline's error floor; end-to-end accuracy cannot exceed 97.5%
 EOF
+
+## Run 1: cnn, 20 epochs, full augmentation
+- best val acc 0.700, train plateaued ~0.78
+- val stuck at 0.333 (single-class prediction) for epochs 1-8
+- hypothesis: RandomResizedCrop + rotation destroying already-cropped hands
+- still improving at epoch 20 -> undertrained
+
+## Run 3: cnn, 50 epochs, random split (smoke test)
+- val acc 0.95 -- PIPELINE VERIFIED, not a generalization result
+- random split leaks near-duplicate frames between train/test
+- signer-disjoint on same data: 0.80
+- leakage inflation: ~15 points
+- NOTE: train_acc understated by Dropout(0.5) active in train mode

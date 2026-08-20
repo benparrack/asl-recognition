@@ -155,9 +155,9 @@ def build_transforms(train: bool):
     if train:
         return transforms.Compose([
             transforms.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
-            transforms.RandomRotation(15),
+            #transforms.RandomRotation(15),
             transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
-            transforms.RandomResizedCrop(config.IMAGE_SIZE, scale=(0.8, 1.0)),
+            #transforms.RandomResizedCrop(config.IMAGE_SIZE, scale=(0.8, 1.0)),
             transforms.ToTensor(),
             transforms.Normalize(config.NORM_MEAN, config.NORM_STD),
         ])
@@ -215,14 +215,25 @@ class ASLLandmarkDataset(Dataset):
 # --------------------------------------------------------------------------
 # Loaders
 # --------------------------------------------------------------------------
-def build_dataloaders(kind: str = "image", seed: int = config.SEED):
+def build_dataloaders(kind: str = "image", seed: int = config.SEED, split: str = "signer"):
     """
-    Convenience wrapper: metadata -> signer-disjoint split -> DataLoaders.
+    Convenience wrapper: metadata -> split -> DataLoaders.
 
-    kind: "image" for the CNN paths, "landmark" for the MLP path.
+    kind:  "image" for the CNN paths, "landmark" for the MLP path.
+    split: "signer" for the honest signer-disjoint split (default),
+           "random" for pipeline smoke testing ONLY -- it leaks.
     """
     df = load_metadata()
-    train_df, val_df, test_df = split_by_signer(df, seed=seed)
+
+    if split == "signer":
+        train_df, val_df, test_df = split_by_signer(df, seed=seed)
+    elif split == "random":
+        print("[data] WARNING: random split -- frames from the same session appear "
+              "in both train and test. Valid for pipeline testing only, never for "
+              "a reported result.")
+        train_df, val_df, test_df = split_randomly_DO_NOT_USE(df, seed=seed)
+    else:
+        raise ValueError(f"unknown split: {split}")
 
     print(f"[data] train {len(train_df):>6}  "
           f"val {len(val_df):>6}  test {len(test_df):>6}")
@@ -250,3 +261,5 @@ def build_dataloaders(kind: str = "image", seed: int = config.SEED):
         DataLoader(val_ds, shuffle=False, **common),
         DataLoader(test_ds, shuffle=False, **common),
     )
+
+
