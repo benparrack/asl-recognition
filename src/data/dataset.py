@@ -155,7 +155,7 @@ def build_transforms(train: bool):
     if train:
         return transforms.Compose([
             transforms.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
-            #transforms.RandomRotation(15),
+            transforms.RandomRotation(15),
             transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
             #transforms.RandomResizedCrop(config.IMAGE_SIZE, scale=(0.8, 1.0)),
             transforms.ToTensor(),

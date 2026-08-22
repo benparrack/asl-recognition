@@ -16,3 +16,8 @@ __pycache__/
 
 results/*.png
 !results/.gitkeep
+
+# Downloaded archives
+*.zip
+*.tar.gz
+*.kaggle-partial

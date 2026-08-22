@@ -44,6 +44,52 @@ import config  # noqa: E402
 from data.landmarks import build_detector, crop_hand, crop_hand_square  # noqa: E402
 
 
+# ---------------------------------------------------------------- (1) helper
+ 
+def letterbox_square(image, size: int, fill=(0, 0, 0)):
+    """
+    Resize to a square WITHOUT distorting the aspect ratio.
+ 
+    The images in this dataset are already tight hand crops, at sizes like
+    84x126 and 155x86. Two ways to make those square:
+ 
+      - cv2.resize() straight to (size, size): STRETCHES. A 155x86 image
+        squashed to square makes a wide hand look narrow, and a 64x146 one makes
+        a narrow hand look wide. The model would then have to learn handshapes
+        across arbitrary distortions -- and worse, the distortion correlates
+        with how the original was framed, so it is a spurious signal.
+ 
+      - letterboxing (this function): scale the longer side to `size`, keep the
+        aspect ratio, and pad the shorter side with a constant colour. Geometry
+        is preserved; the padding is a benign, consistent artifact.
+ 
+    Letterboxing is the standard choice for object detection pipelines for
+    exactly this reason.
+    """
+    h, w = image.shape[:2]
+    scale = size / max(h, w)
+ 
+    new_w = max(1, int(round(w * scale)))
+    new_h = max(1, int(round(h * scale)))
+ 
+    # INTER_AREA for shrinking (averages the source region, avoids aliasing),
+    # INTER_LINEAR for enlarging.
+    interp = cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR
+    resized = cv2.resize(image, (new_w, new_h), interpolation=interp)
+ 
+    pad_w = size - new_w
+    pad_h = size - new_h
+    top = pad_h // 2
+    left = pad_w // 2
+ 
+    return cv2.copyMakeBorder(
+        resized,
+        top, pad_h - top,
+        left, pad_w - left,
+        cv2.BORDER_CONSTANT, value=fill,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Crop raw frames into processed images")
     parser.add_argument("--crop", default="square", choices=["square", "clamp"],
@@ -55,6 +101,11 @@ def main() -> None:
                         help="store crops at this size; 0 keeps native size")
     parser.add_argument("--overwrite", action="store_true",
                         help="reprocess images that already exist")
+    parser.add_argument("--no-detect", action="store_true",
+                        help="images are ALREADY hand crops: skip MediaPipe and "
+                             "just letterbox to square. Use for the Pugeault "
+                             "fingerspelling dataset, where running a detector "
+                             "on pre-cropped images fails ~30%% of the time.")
     args = parser.parse_args()
 
     crop_fn = crop_hand_square if args.crop == "square" else crop_hand
@@ -65,7 +116,7 @@ def main() -> None:
 
     # Build the detector ONCE. Constructing it per image works but is roughly an
     # order of magnitude slower -- it reloads the model graph every time.
-    detector = build_detector(static_mode=True)
+    detector = None if args.no_detect else build_detector(static_mode=True)
 
     kept: list[dict] = []
     failed: list[dict] = []
@@ -86,14 +137,17 @@ def main() -> None:
             failed.append(dict(row, reason="unreadable"))
             continue
 
-        crop = crop_fn(image, detector, padding=args.padding)
-        if crop is None:
-            failed.append(dict(row, reason="no_hand_detected"))
-            continue
-
-        if args.resize:
-            crop = cv2.resize(crop, (args.resize, args.resize),
-                              interpolation=cv2.INTER_AREA)
+        if args.no_detect:
+            # Already a hand crop: preserve geometry, pad to square.
+            crop = letterbox_square(image, args.resize or 256)
+        else:
+            crop = crop_fn(image, detector, padding=args.padding)
+            if crop is None:
+                failed.append(dict(row, reason="no_hand_detected"))
+                continue
+            if args.resize:
+                crop = cv2.resize(crop, (args.resize, args.resize),
+                                  interpolation=cv2.INTER_AREA)
 
         dst.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(dst), crop)

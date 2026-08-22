@@ -27,8 +27,8 @@ LANDMARKS_NPZ = PROCESSED_DIR / "landmarks.npz"
 # classifier is structurally incapable of representing them -- this is a
 # property of the language, not a shortcoming of your model. Say so in the
 # report; it reads as understanding rather than as an excuse.
-#STATIC_LETTERS = list("ABCDEFGHIKLMNOPQRSTUVWXY")   # 24 letters, no J, no Z
-STATIC_LETTERS = ["FIST", "PALM", "PEACE"]   # TEMPORARY: pipeline smoke test
+STATIC_LETTERS = list("ABCDEFGHIKLMNOPQRSTUVWXY")   # 24 letters, no J, no Z
+#STATIC_LETTERS = ["FIST", "PALM", "PEACE"]   # TEMPORARY: pipeline smoke test
 MOTION_LETTERS = ["J", "Z"]
 
 INCLUDE_MOTION_LETTERS = False   # flip to True only once you feed sequences

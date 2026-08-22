@@ -56,7 +56,7 @@ class ASLNet(nn.Module):
     def __init__(
         self,
         num_classes: int = config.NUM_CLASSES,
-        channels: tuple[int, ...] = (32, 64, 128),
+        channels: tuple[int, ...] = (32, 64, 128, 256),
         dropout: float = 0.5,
     ):
         super().__init__()
