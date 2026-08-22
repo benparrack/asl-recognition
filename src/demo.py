@@ -37,7 +37,7 @@ sys.path.insert(0, str(_ROOT))
 
 import config  # noqa: E402
 from data.dataset import build_transforms  # noqa: E402
-from data.landmarks import build_detector, detect_and_crop  # noqa: E402
+from data.landmarks import build_detector, detect_and_crop, letterbox_square  # noqa: E402
 
 
 class PredictionSmoother:
@@ -176,12 +176,15 @@ def main() -> None:
         # it in both.
         frame = cv2.flip(frame, 1)
 
-        crop, bbox = detect_and_crop(frame, detector, padding=args.padding)
+        crop, bbox = detect_and_crop(frame, detector, padding=args.padding, square=False)
 
         if crop is not None:
             # BGR (OpenCV) -> RGB PIL, matching how ASLImageDataset loaded
             # training images. Skip the colour conversion and every channel is
             # swapped relative to training.
+            crop = letterbox_square(crop, 256)
+            crop = cv2.resize(crop, (110, 110), interpolation=cv2.INTER_AREA)
+            crop = cv2.resize(crop, (256, 256), interpolation=cv2.INTER_LINEAR)
             pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
             tensor = transform(pil).unsqueeze(0).to(device)   # add batch dim
 
@@ -203,7 +206,7 @@ def main() -> None:
         cv2.imshow("ASL Fingerspelling", frame)
 
         if show_debug and crop is not None:
-            cv2.imshow("model input", cv2.resize(crop, (256, 256)))
+            cv2.imshow("model input", crop)
 
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):

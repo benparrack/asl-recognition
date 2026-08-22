@@ -37,6 +37,30 @@ try:
 except ImportError:
     cv2 = None
 
+def letterbox_square(image, size: int, fill=(0, 0, 0)):
+    h, w = image.shape[:2]
+    scale = size / max(h, w)
+ 
+    new_w = max(1, int(round(w * scale)))
+    new_h = max(1, int(round(h * scale)))
+ 
+    # INTER_AREA for shrinking (averages the source region, avoids aliasing),
+    # INTER_LINEAR for enlarging.
+    interp = cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR
+    resized = cv2.resize(image, (new_w, new_h), interpolation=interp)
+ 
+    pad_w = size - new_w
+    pad_h = size - new_h
+    top = pad_h // 2
+    left = pad_w // 2
+ 
+    return cv2.copyMakeBorder(
+        resized,
+        top, pad_h - top,
+        left, pad_w - left,
+        cv2.BORDER_CONSTANT, value=fill,
+    )
+
 
 def build_detector(static_mode: bool = True, min_confidence: float = 0.5):
     """
@@ -253,50 +277,50 @@ def extract_dataset_landmarks(df, image_root, out_path=config.LANDMARKS_NPZ):
     """
     raise NotImplementedError("See the TODO above.")
 
-def detect_and_crop(frame_bgr: np.ndarray, detector, padding: float = 0.25):
+def detect_and_crop(frame_bgr: np.ndarray, detector, padding: float = 0.25,
+                    square: bool = True):
     """
     Detect a hand once and return (crop_bgr, bbox) or (None, None).
- 
-    bbox is (x1, y1, x2, y2) in pixel coordinates, clamped to the frame, for
-    drawing. The crop itself is square-padded, matching preprocess.py.
+
+    square=True   crop is squared around the hand centre (webcam-native framing)
+    square=False  crop is the hand's tight bounding box, aspect ratio preserved.
+                  Use this when the crop will be letterboxed afterwards, so the
+                  result matches datasets whose images are non-square hand crops.
     """
     if cv2 is None:
         raise ImportError("opencv-python is not installed: pip install opencv-python")
- 
+
     image_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
     result = detector.process(image_rgb)
- 
+
     if not result.multi_hand_landmarks:
         return None, None
- 
+
     h, w = frame_bgr.shape[:2]
     hand = result.multi_hand_landmarks[0]
     xs = [lm.x * w for lm in hand.landmark]
     ys = [lm.y * h for lm in hand.landmark]
- 
-    cx = (min(xs) + max(xs)) / 2.0
-    cy = (min(ys) + max(ys)) / 2.0
-    half = max(max(xs) - min(xs), max(ys) - min(ys)) / 2.0 * (1.0 + padding)
- 
-    x1, x2 = int(round(cx - half)), int(round(cx + half))
-    y1, y2 = int(round(cy - half)), int(round(cy + half))
- 
-    pad_left = max(0, -x1)
-    pad_top = max(0, -y1)
-    pad_right = max(0, x2 - w)
-    pad_bottom = max(0, y2 - h)
- 
-    cx1, cy1 = max(0, x1), max(0, y1)
-    cx2, cy2 = min(w, x2), min(h, y2)
- 
-    crop = frame_bgr[cy1:cy2, cx1:cx2]
-    if crop.size == 0 or (cx2 - cx1) < 10 or (cy2 - cy1) < 10:
+
+    x_min, x_max = min(xs), max(xs)
+    y_min, y_max = min(ys), max(ys)
+
+    if square:
+        cx, cy = (x_min + x_max) / 2.0, (y_min + y_max) / 2.0
+        half = max(x_max - x_min, y_max - y_min) / 2.0 * (1.0 + padding)
+        x1, x2 = cx - half, cx + half
+        y1, y2 = cy - half, cy + half
+    else:
+        # Pad each axis by a fraction of ITS OWN extent, so the aspect ratio of
+        # the hand's bounding box survives.
+        pad_x = (x_max - x_min) * padding
+        pad_y = (y_max - y_min) * padding
+        x1, x2 = x_min - pad_x, x_max + pad_x
+        y1, y2 = y_min - pad_y, y_max + pad_y
+
+    x1, y1 = max(0, int(round(x1))), max(0, int(round(y1)))
+    x2, y2 = min(w, int(round(x2))), min(h, int(round(y2)))
+
+    if (x2 - x1) < 10 or (y2 - y1) < 10:
         return None, None
- 
-    if pad_left or pad_top or pad_right or pad_bottom:
-        crop = cv2.copyMakeBorder(
-            crop, pad_top, pad_bottom, pad_left, pad_right,
-            cv2.BORDER_CONSTANT, value=(0, 0, 0),
-        )
- 
-    return crop, (cx1, cy1, cx2, cy2)
+
+    return frame_bgr[y1:y2, x1:x2], (x1, y1, x2, y2)

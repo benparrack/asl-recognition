@@ -41,7 +41,7 @@ sys.path.insert(0, str(_ROOT))
 sys.path.insert(0, str(_ROOT / "src"))
 
 import config  # noqa: E402
-from data.landmarks import build_detector, crop_hand, crop_hand_square  # noqa: E402
+from data.landmarks import build_detector, crop_hand, crop_hand_square, letterbox_square  # noqa: E402
 
 
 # ---------------------------------------------------------------- (1) helper

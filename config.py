@@ -68,7 +68,7 @@ BATCH_SIZE = 64          # RTX 4060 (8 GB) handles this comfortably at 128px.
 NUM_EPOCHS = 30
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 1e-4
-NUM_WORKERS = 4          # DataLoader subprocesses; ~= your CPU core count
+NUM_WORKERS = 8          # DataLoader subprocesses; ~= your CPU core count
 
 SEED = 42                # fix every source of randomness -- see src/utils.py
 
