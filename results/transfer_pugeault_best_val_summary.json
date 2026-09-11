@@ -1,0 +1,65 @@
+{
+  "checkpoint": "checkpoints/transfer_pugeault_best.pt",
+  "split": "val",
+  "overall_accuracy": 0.398125,
+  "confusable_groups": {
+    "total_errors": 2889,
+    "groups": [
+      {
+        "group": [
+          "M",
+          "N",
+          "S",
+          "T"
+        ],
+        "errors": 330,
+        "fraction_of_total_errors": 0.1142263759086189
+      },
+      {
+        "group": [
+          "A",
+          "S",
+          "T"
+        ],
+        "errors": 72,
+        "fraction_of_total_errors": 0.024922118380062305
+      },
+      {
+        "group": [
+          "U",
+          "V",
+          "R"
+        ],
+        "errors": 204,
+        "fraction_of_total_errors": 0.07061266874350987
+      },
+      {
+        "group": [
+          "D",
+          "F"
+        ],
+        "errors": 31,
+        "fraction_of_total_errors": 0.010730356524749048
+      },
+      {
+        "group": [
+          "K",
+          "P"
+        ],
+        "errors": 0,
+        "fraction_of_total_errors": 0.0
+      },
+      {
+        "group": [
+          "G",
+          "H",
+          "Q"
+        ],
+        "errors": 232,
+        "fraction_of_total_errors": 0.08030460366908965
+      }
+    ],
+    "combined_errors": 849,
+    "combined_fraction": 0.29387331256490135
+  }
+}

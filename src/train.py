@@ -42,10 +42,10 @@ def set_seed(seed: int = config.SEED):
     torch.cuda.manual_seed_all(seed)
 
 
-def build_model(name: str) -> nn.Module:
+def build_model(name: str, dropout: float = 0.5) -> nn.Module:
     if name == "cnn":
         from models.cnn import ASLNet
-        return ASLNet()
+        return ASLNet(dropout=dropout)
     if name == "transfer":
         from models.baselines import TransferNet
         return TransferNet()
@@ -105,6 +105,7 @@ def main():
     parser.add_argument("--lr", type=float, default=config.LEARNING_RATE)
     parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE)
     parser.add_argument("--split", default="signer", choices=["signer", "random"])
+    parser.add_argument("--dropout", type=float, default=0.5, help="cnn only")
     parser.add_argument("--tag", default="", help="suffix for checkpoint/result files")
     args = parser.parse_args()
 
@@ -117,7 +118,7 @@ def main():
     kind = "landmark" if args.model == "mlp" else "image"
     train_loader, val_loader, test_loader = build_dataloaders(kind=kind, split=args.split)
 
-    model = build_model(args.model).to(device)
+    model = build_model(args.model, dropout=args.dropout).to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr,

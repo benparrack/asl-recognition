@@ -30,6 +30,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
 import config
+from data.landmarks import extract_dataset_landmarks
 
 
 # --------------------------------------------------------------------------
@@ -224,6 +225,30 @@ def build_dataloaders(kind: str = "image", seed: int = config.SEED, split: str =
            "random" for pipeline smoke testing ONLY -- it leaks.
     """
     df = load_metadata()
+    landmarks_by_row_id = None
+
+    if kind == "landmark":
+        if not config.LANDMARKS_NPZ.exists():
+            print(f"[landmarks] {config.LANDMARKS_NPZ} not found -- extracting now "
+                  "(one-time cost, cached to disk afterward)")
+            extract_dataset_landmarks(df, config.PROCESSED_DIR, config.LANDMARKS_NPZ)
+
+        cached = np.load(config.LANDMARKS_NPZ)
+        landmarks, detected = cached["landmarks"], cached["detected"]
+        assert len(landmarks) == len(df), (
+            "landmarks.npz row count doesn't match metadata.csv -- delete "
+            f"{config.LANDMARKS_NPZ} and re-run if the metadata changed"
+        )
+
+        fail_rate = 1.0 - detected.mean()
+        print(f"[landmarks] detection failure rate: {fail_rate:.1%} "
+              f"({(~detected).sum()}/{len(detected)})")
+
+        # A stable row id survives the split_by_signer() filtering/reindexing
+        # below, so we can look each row's landmark vector back up afterward.
+        df = df.assign(_row_id=np.arange(len(df)))
+        landmarks_by_row_id = {rid: vec for rid, vec in zip(df["_row_id"], landmarks)}
+        df = df[detected].reset_index(drop=True)
 
     if split == "signer":
         train_df, val_df, test_df = split_by_signer(df, seed=seed)
@@ -245,10 +270,12 @@ def build_dataloaders(kind: str = "image", seed: int = config.SEED, split: str =
         val_ds = ASLImageDataset(val_df, train=False)
         test_ds = ASLImageDataset(test_df, train=False)
     elif kind == "landmark":
-        raise NotImplementedError(
-            "TODO: load LANDMARKS_NPZ, index it by the split dataframes, and "
-            "construct three ASLLandmarkDataset objects."
-        )
+        def landmarks_for(split_df: pd.DataFrame) -> np.ndarray:
+            return np.stack([landmarks_by_row_id[rid] for rid in split_df["_row_id"]])
+
+        train_ds = ASLLandmarkDataset(train_df, landmarks_for(train_df))
+        val_ds = ASLLandmarkDataset(val_df, landmarks_for(val_df))
+        test_ds = ASLLandmarkDataset(test_df, landmarks_for(test_df))
     else:
         raise ValueError(f"unknown kind: {kind}")
 

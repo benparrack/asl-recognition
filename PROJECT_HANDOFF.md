@@ -8,19 +8,15 @@ setup-and-first-results phase.
 ## 1. Who and why
 
 Ben, junior CS major, taking Machine Learning, AI, App Development, and
-Data-Driven Analytics. This is a self-directed project intended to become the
-end-of-semester ML course project, though **the assignment has not been issued
-yet** and its constraints are unknown.
+Data-Driven Analytics. This is a self-directed project for fun and also for learning.
 
-**Important constraint:** the professor is expected to require that the student
-build and train the model themselves. Treat the model architecture, training
-loop, and evaluation logic as work Ben should write, with guidance rather than
-completion. Infrastructure and plumbing (data pipelines, capture tooling,
-preprocessing, visualization) has been written for him and that's fine.
+Ben is new to Linux and to PyTorch.
 
-Ben is new to Linux and to PyTorch. He has asked, explicitly and repeatedly, that
-**every terminal command be explained** — what it does and how it works — rather
-than just handed over. Continue doing this.
+**Update, 2026-09-11:** earlier guidance in this doc said to explain every terminal
+command and let Ben write model-relevant code himself with guidance. Ben has since
+clarified this is personal curiosity, not a school assignment, and no longer wants
+unsolicited explanations or the write-it-yourself pattern by default — write code
+directly and move through steps; he'll ask if he wants something explained.
 
 He does **not** know ASL. This matters for validation (see §7).
 

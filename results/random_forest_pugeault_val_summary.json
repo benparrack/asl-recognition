@@ -1,0 +1,68 @@
+{
+  "model": "random_forest",
+  "n_estimators": 300,
+  "val_accuracy": 0.9070941681393587,
+  "fit_time_seconds": 4.131895542144775,
+  "train_samples": 10031,
+  "val_samples": 3961,
+  "confusable_groups": {
+    "total_errors": 368,
+    "groups": [
+      {
+        "group": [
+          "M",
+          "N",
+          "S",
+          "T"
+        ],
+        "errors": 23,
+        "fraction_of_total_errors": 0.0625
+      },
+      {
+        "group": [
+          "A",
+          "S",
+          "T"
+        ],
+        "errors": 21,
+        "fraction_of_total_errors": 0.057065217391304345
+      },
+      {
+        "group": [
+          "U",
+          "V",
+          "R"
+        ],
+        "errors": 47,
+        "fraction_of_total_errors": 0.12771739130434784
+      },
+      {
+        "group": [
+          "D",
+          "F"
+        ],
+        "errors": 0,
+        "fraction_of_total_errors": 0.0
+      },
+      {
+        "group": [
+          "K",
+          "P"
+        ],
+        "errors": 5,
+        "fraction_of_total_errors": 0.01358695652173913
+      },
+      {
+        "group": [
+          "G",
+          "H",
+          "Q"
+        ],
+        "errors": 0,
+        "fraction_of_total_errors": 0.0
+      }
+    ],
+    "combined_errors": 93,
+    "combined_fraction": 0.25271739130434784
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "checkpoint": "checkpoints/cnn_pugeault_best.pt",
+  "split": "val",
+  "overall_accuracy": 0.8789583333333333,
+  "confusable_groups": {
+    "total_errors": 581,
+    "groups": [
+      {
+        "group": [
+          "M",
+          "N",
+          "S",
+          "T"
+        ],
+        "errors": 50,
+        "fraction_of_total_errors": 0.08605851979345955
+      },
+      {
+        "group": [
+          "A",
+          "S",
+          "T"
+        ],
+        "errors": 61,
+        "fraction_of_total_errors": 0.10499139414802065
+      },
+      {
+        "group": [
+          "U",
+          "V",
+          "R"
+        ],
+        "errors": 24,
+        "fraction_of_total_errors": 0.04130808950086059
+      },
+      {
+        "group": [
+          "D",
+          "F"
+        ],
+        "errors": 2,
+        "fraction_of_total_errors": 0.0034423407917383822
+      },
+      {
+        "group": [
+          "K",
+          "P"
+        ],
+        "errors": 0,
+        "fraction_of_total_errors": 0.0
+      },
+      {
+        "group": [
+          "G",
+          "H",
+          "Q"
+        ],
+        "errors": 14,
+        "fraction_of_total_errors": 0.024096385542168676
+      }
+    ],
+    "combined_errors": 151,
+    "combined_fraction": 0.25989672977624784
+  }
+}

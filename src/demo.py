@@ -8,6 +8,7 @@ Controls:
     q       quit
     c       clear the sentence
     SPACE   append the current letter to the sentence
+    s       append a literal space (word separator) to the sentence
     d       toggle the debug view (shows the model's actual input)
 
 WHY THE DEBUG VIEW MATTERS
@@ -37,7 +38,10 @@ sys.path.insert(0, str(_ROOT))
 
 import config  # noqa: E402
 from data.dataset import build_transforms  # noqa: E402
-from data.landmarks import build_detector, detect_and_crop, letterbox_square  # noqa: E402
+from data.landmarks import (  # noqa: E402
+    build_detector, detect_and_crop, letterbox_square,
+    extract_landmarks, normalise_landmarks,
+)
 
 
 class PredictionSmoother:
@@ -73,7 +77,13 @@ class PredictionSmoother:
 
 
 def load_model(checkpoint_path: str, device: torch.device):
-    """Rebuild the architecture recorded in the checkpoint and load its weights."""
+    """
+    Rebuild the architecture recorded in the checkpoint and load its weights.
+
+    Returns (model, kind), where kind is "image" (feed a cropped/transformed
+    pixel tensor) or "landmark" (feed a normalised 63-vector) -- same split the
+    training/eval code uses to pick a dataloader.
+    """
     ckpt = torch.load(checkpoint_path, map_location=device)
 
     if ckpt.get("classes") != config.CLASSES:
@@ -86,11 +96,15 @@ def load_model(checkpoint_path: str, device: torch.device):
     if name == "cnn":
         from models.cnn import ASLNet
         model = ASLNet()
+        kind = "image"
     elif name == "transfer":
         from models.baselines import TransferNet
         model = TransferNet()
+        kind = "image"
     elif name == "mlp":
-        raise ValueError("the landmark MLP needs a different demo path")
+        from models.baselines import LandmarkMLP
+        model = LandmarkMLP()
+        kind = "landmark"
     else:
         raise ValueError(f"unknown model: {name}")
 
@@ -98,8 +112,8 @@ def load_model(checkpoint_path: str, device: torch.device):
     model.to(device)
     model.eval()   # dropout off, BatchNorm on running stats -- essential
 
-    print(f"[demo] {name} from epoch {ckpt['epoch']}, val acc {ckpt['val_acc']:.4f}")
-    return model
+    print(f"[demo] {name} ({kind}) from epoch {ckpt['epoch']}, val acc {ckpt['val_acc']:.4f}")
+    return model, kind
 
 
 def draw_overlay(frame, bbox, letter, confidence, sentence, fps):
@@ -140,7 +154,7 @@ def main() -> None:
     args = parser.parse_args()
 
     device = config.DEVICE
-    model = load_model(args.checkpoint, device)
+    model, kind = load_model(args.checkpoint, device)
 
     # static_mode=False enables tracking between frames: faster and steadier on
     # video than treating every frame as an unrelated image.
@@ -164,7 +178,7 @@ def main() -> None:
     letter, confidence = None, 0.0
     fps, last_t = 0.0, time.time()
 
-    print("[demo] q quit | c clear | SPACE append | d debug view")
+    print("[demo] q quit | c clear | SPACE append | s space | d debug view")
 
     while True:
         ok, frame = cap.read()
@@ -176,27 +190,58 @@ def main() -> None:
         # it in both.
         frame = cv2.flip(frame, 1)
 
-        crop, bbox = detect_and_crop(frame, detector, padding=args.padding, square=False)
+        crop = None
 
-        if crop is not None:
-            # BGR (OpenCV) -> RGB PIL, matching how ASLImageDataset loaded
-            # training images. Skip the colour conversion and every channel is
-            # swapped relative to training.
-            crop = letterbox_square(crop, 256)
-            crop = cv2.resize(crop, (110, 110), interpolation=cv2.INTER_AREA)
-            crop = cv2.resize(crop, (256, 256), interpolation=cv2.INTER_LINEAR)
-            pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
-            tensor = transform(pil).unsqueeze(0).to(device)   # add batch dim
+        if kind == "image":
+            crop, bbox = detect_and_crop(frame, detector, padding=args.padding, square=False)
 
-            with torch.no_grad():
-                probs = torch.softmax(model(tensor), dim=1)[0]
+            if crop is not None:
+                # BGR (OpenCV) -> RGB PIL, matching how ASLImageDataset loaded
+                # training images. Skip the colour conversion and every channel is
+                # swapped relative to training.
+                crop = letterbox_square(crop, 256)
+                crop = cv2.resize(crop, (110, 110), interpolation=cv2.INTER_AREA)
+                crop = cv2.resize(crop, (256, 256), interpolation=cv2.INTER_LINEAR)
+                pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+                tensor = transform(pil).unsqueeze(0).to(device)   # add batch dim
 
-            conf, idx = probs.max(dim=0)
-            confidence = conf.item()
-            letter = smoother.update(int(idx.item()), confidence)
-        else:
-            letter = smoother.update(None)
-            confidence = 0.0
+                with torch.no_grad():
+                    probs = torch.softmax(model(tensor), dim=1)[0]
+
+                conf, idx = probs.max(dim=0)
+                confidence = conf.item()
+                letter = smoother.update(int(idx.item()), confidence)
+            else:
+                letter = smoother.update(None)
+                confidence = 0.0
+
+        else:  # kind == "landmark"
+            # MediaPipe finds the hand directly in the full frame -- no crop step
+            # needed, unlike the pixel models. One detector.process() call per
+            # frame gives us both the keypoints (for the model) and a bounding
+            # box (for the overlay), from the same detection.
+            image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            raw = extract_landmarks(detector, image_rgb)
+
+            if raw is not None:
+                h, w = frame.shape[:2]
+                xs = raw[:, 0] * w
+                ys = raw[:, 1] * h
+                bbox = (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))
+
+                vec = normalise_landmarks(raw)
+                tensor = torch.from_numpy(vec).unsqueeze(0).to(device)   # (1, 63)
+
+                with torch.no_grad():
+                    probs = torch.softmax(model(tensor), dim=1)[0]
+
+                conf, idx = probs.max(dim=0)
+                confidence = conf.item()
+                letter = smoother.update(int(idx.item()), confidence)
+            else:
+                bbox = None
+                letter = smoother.update(None)
+                confidence = 0.0
 
         now = time.time()
         fps = 0.9 * fps + 0.1 / max(now - last_t, 1e-6)   # smoothed
@@ -215,6 +260,8 @@ def main() -> None:
             sentence.clear()
         elif key == ord(" ") and letter:
             sentence.append(letter[0] if len(letter) == 1 else letter + " ")
+        elif key == ord("s"):
+            sentence.append(" ")
         elif key == ord("d"):
             show_debug = not show_debug
             if not show_debug:

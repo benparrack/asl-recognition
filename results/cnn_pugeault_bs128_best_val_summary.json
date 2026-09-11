@@ -1,0 +1,65 @@
+{
+  "checkpoint": "checkpoints/cnn_pugeault_bs128_best.pt",
+  "split": "val",
+  "overall_accuracy": 0.8966666666666666,
+  "confusable_groups": {
+    "total_errors": 496,
+    "groups": [
+      {
+        "group": [
+          "M",
+          "N",
+          "S",
+          "T"
+        ],
+        "errors": 27,
+        "fraction_of_total_errors": 0.05443548387096774
+      },
+      {
+        "group": [
+          "A",
+          "S",
+          "T"
+        ],
+        "errors": 43,
+        "fraction_of_total_errors": 0.08669354838709678
+      },
+      {
+        "group": [
+          "U",
+          "V",
+          "R"
+        ],
+        "errors": 11,
+        "fraction_of_total_errors": 0.02217741935483871
+      },
+      {
+        "group": [
+          "D",
+          "F"
+        ],
+        "errors": 0,
+        "fraction_of_total_errors": 0.0
+      },
+      {
+        "group": [
+          "K",
+          "P"
+        ],
+        "errors": 10,
+        "fraction_of_total_errors": 0.020161290322580645
+      },
+      {
+        "group": [
+          "G",
+          "H",
+          "Q"
+        ],
+        "errors": 8,
+        "fraction_of_total_errors": 0.016129032258064516
+      }
+    ],
+    "combined_errors": 99,
+    "combined_fraction": 0.19959677419354838
+  }
+}

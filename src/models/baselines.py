@@ -49,10 +49,21 @@ class TransferNet(nn.Module):
 
     def __init__(self, num_classes: int = config.NUM_CLASSES, freeze_backbone: bool = True):
         super().__init__()
-        raise NotImplementedError("See the TODO above.")
+        from torchvision.models import resnet18, ResNet18_Weights
+
+        backbone = resnet18(weights=ResNet18_Weights.DEFAULT)
+
+        if freeze_backbone:
+            for param in backbone.parameters():
+                param.requires_grad = False
+
+        # Replaced after freezing, so the new head keeps requires_grad=True
+        # regardless of freeze_backbone.
+        backbone.fc = nn.Linear(backbone.fc.in_features, num_classes)
+        self.backbone = backbone
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
+        return self.backbone(x)
 
 
 class LandmarkMLP(nn.Module):
@@ -77,12 +88,23 @@ class LandmarkMLP(nn.Module):
                  hidden: tuple[int, ...] = (128, 64), dropout: float = 0.3):
         super().__init__()
 
-        # TODO: build the stack. A loop over `hidden` keeps this clean and makes
-        # the layer sizes easy to sweep as a hyperparameter.
-        raise NotImplementedError("Build the MLP here.")
+        layers: list[nn.Module] = []
+        in_dim = config.LANDMARK_FEATURE_SIZE
+
+        for h in hidden:
+            layers += [
+                nn.Linear(in_dim, h),
+                nn.BatchNorm1d(h),
+                nn.ReLU(inplace=True),
+                nn.Dropout(dropout),
+            ]
+            in_dim = h
+
+        layers.append(nn.Linear(in_dim, num_classes))
+        self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
+        return self.net(x)
 
 
 # ---------------------------------------------------------------------------

@@ -22,6 +22,8 @@ number.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 
 import config
@@ -275,7 +277,41 @@ def extract_dataset_landmarks(df, image_root, out_path=config.LANDMARKS_NPZ):
     Cache this. Extraction over tens of thousands of images takes a while and you
     do not want to repeat it on every run.
     """
-    raise NotImplementedError("See the TODO above.")
+    if cv2 is None:
+        raise ImportError("opencv-python is not installed: pip install opencv-python")
+
+    detector = build_detector(static_mode=True)
+
+    landmarks = np.zeros((len(df), config.LANDMARK_FEATURE_SIZE), dtype=np.float32)
+    detected = np.zeros(len(df), dtype=bool)
+
+    for i, row in enumerate(df.itertuples(index=False)):
+        frame_bgr = cv2.imread(str(Path(image_root) / row.path))
+        if frame_bgr is None:
+            continue  # missing/unreadable file -- counts as a detection failure
+
+        image_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        raw = extract_landmarks(detector, image_rgb)
+        if raw is None:
+            continue
+
+        landmarks[i] = normalise_landmarks(raw)
+        detected[i] = True
+
+        if (i + 1) % 2000 == 0:
+            print(f"[landmarks] {i + 1}/{len(df)}  "
+                  f"({detected[:i + 1].mean():.1%} detected so far)")
+
+    detector.close()
+
+    fail_rate = 1.0 - detected.mean()
+    print(f"[landmarks] done. detection failure rate: {fail_rate:.1%} "
+          f"({(~detected).sum()}/{len(detected)})")
+
+    np.savez_compressed(out_path, landmarks=landmarks, detected=detected)
+    print(f"[landmarks] cached -> {out_path}")
+
+    return landmarks, detected
 
 def detect_and_crop(frame_bgr: np.ndarray, detector, padding: float = 0.25,
                     square: bool = True):
