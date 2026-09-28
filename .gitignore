@@ -22,3 +22,7 @@ results/*.png
 *.zip
 *.tar.gz
 *.kaggle-partial
+
+# Background-job logs and large external datasets
+logs/
+data/external/
