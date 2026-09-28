@@ -7,8 +7,9 @@ on-disk format is different (raw landmarks + timestamps vs normalised vectors),
 the classes are different, and v1 has to keep working unchanged for the old
 checkpoint.
 
-Features come from data.motion_features.clip_to_features -- the same function
-the demo calls -- and augmentation happens on the raw clip BEFORE that call, so
+Clips are first cut down by the live gate's own code (load_model_clip), then
+featurised by data.motion_features.clip_to_features -- the same function the
+demo calls -- and augmentation happens on the raw clip BEFORE that call, so
 augmented samples go through the exact feature code real ones do.
 """
 
@@ -49,6 +50,21 @@ def load_raw_clip(path):
     return d["raw"], d["timestamps"], int(d["frame_w"]), int(d["frame_h"])
 
 
+def load_model_clip(path):
+    """load_raw_clip, then cut down to what the live gate would classify
+    (motion_gate.gate_segment). Clips the gate never fires on (a held hand)
+    stay whole: live they'd never reach the model, but they're still honest
+    NONE examples. Everything that trains or evaluates a v2 model goes through
+    here, so train, val, test and the diagnostics all see gate-cut clips."""
+    from motion_gate import gate_segment
+
+    raw, t, w, h = load_raw_clip(path)
+    seg = gate_segment(raw, t, (w, h))
+    if seg is None:
+        return raw, t, w, h
+    return seg[0], seg[1], w, h
+
+
 class MotionClipDatasetV2(Dataset):
     """
     One clip -> (features (RESAMPLE_LEN, FEATURE_DIM), class index).
@@ -66,7 +82,7 @@ class MotionClipDatasetV2(Dataset):
         self.augment = augment
         self.length = length
         self.rng = np.random.default_rng(seed)
-        self.clips = [load_raw_clip(root / p) for p in self.df["path"]]
+        self.clips = [load_model_clip(root / p) for p in self.df["path"]]
         self.labels = [config.MOTION_V2_CLASS_TO_IDX[l] for l in self.df["label"]]
 
         self.base = []

@@ -53,7 +53,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config  # noqa: E402
 from data import motion_features as mf  # noqa: E402
 from data.motion_dataset_v2 import (  # noqa: E402
-    load_motion_v2_metadata, load_raw_clip, split_motion_v2,
+    load_model_clip, load_motion_v2_metadata, split_motion_v2,
 )
 
 TEST_MARKER = config.RESULTS_DIR / "motion_v2_test_used.json"
@@ -66,7 +66,7 @@ def featurise(df: pd.DataFrame, root: Path) -> tuple[np.ndarray, np.ndarray]:
     can't be featurised are an error, not a silent drop."""
     X, y = [], []
     for p, label in zip(df["path"], df["label"]):
-        raw, t, w, h = load_raw_clip(root / p)
+        raw, t, w, h = load_model_clip(root / p)
         f = mf.clip_to_features(raw, t, w, h)
         if f is None:
             raise ValueError(f"{p}: too few detected frames to featurise")

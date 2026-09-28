@@ -4,7 +4,8 @@ Train the v2 motion model (J / Z / NONE) on raw-landmark clips.
 Run:  python src/train_motion_v2.py --epochs 80
 
 Differences from train_motion.py (v1), which stays as-is for the old checkpoint:
-  - v2 dataset: raw clips -> shared motion_features.clip_to_features
+  - v2 dataset: raw clips -> cut by the live gate's own code -> shared
+    motion_features.clip_to_features
   - train-time augmentation on the raw clip (never mirrored)
   - normalisation stats computed on the TRAIN split only, stored in the model
   - checkpoint carries everything the demo needs to rebuild the exact input:
@@ -55,6 +56,9 @@ def build_checkpoint(model, epoch, val_acc, val_loss, args, split_signers) -> di
             "mean": model.feat_mean.cpu().tolist(),
             "std": model.feat_std.cpu().tolist(),
         },
+        # Training clips were cut by the live gate at its default threshold
+        # (motion_dataset_v2.load_model_clip); recorded so a later change is visible.
+        "train_segmentation": {"kind": "gate_segment", "threshold": 1.0},
         "hidden_size": args.hidden_size,
         "dropout": args.dropout,
         "split_signers": split_signers,

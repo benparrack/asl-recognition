@@ -163,8 +163,12 @@ class GateParams:
             return cls(threshold=0.025 if threshold is None else threshold,
                        measure=centroid_displacement_v1, max_frames=classifier.max_len,
                        min_confidence=min_confidence, max_counts_detected_only=True)
-        # v2: ~2.5 s max matches the 2.0 s capture window plus slack; 4-frame
-        # low streak (~130 ms) rides out the brief pause at Z's corners.
+        return cls.v2_default(threshold, min_confidence, fps_hint)
+
+    @classmethod
+    def v2_default(cls, threshold=None, min_confidence=0.6, fps_hint=30.0):
+        # ~2.5 s max matches the 2.0 s capture window plus slack; 4-frame low
+        # streak (~130 ms) rides out the brief pause at Z's corners.
         return cls(threshold=1.0 if threshold is None else threshold,
                    measure=hand_speed_v2, min_frames=10, min_low_streak=4,
                    max_frames=int(2.5 * fps_hint), min_confidence=min_confidence, preroll=3)
@@ -270,3 +274,38 @@ class MotionGate:
         self.held_letter = (pred, conf)
         self._log(f"{pred} accepted, confidence {conf:.2f}, {n_detected} frames")
         return {"outcome": "accepted", "label": pred, "confidence": conf, "frames": n_detected}
+
+
+# ------------------------------------------------------------------ offline segmentation
+def gate_segment(raw, timestamps, frame_wh, params: GateParams | None = None):
+    """
+    Run the live gate over a recorded clip and return the part of it the gate
+    would have handed to the classifier: (raw_segment, timestamps_segment), or
+    None if the gate never fired on at least min_frames detected frames.
+
+    Why: capture records a fixed 2 s window (still hand, letter, still hand),
+    but live the model only ever sees what the gate cuts out, i.e. roughly
+    trigger-minus-preroll to the first low-speed streak. Training on the whole
+    window would teach it that a J fills about half the time axis, and live it
+    fills nearly all of it. Cutting training clips with this same gate code keeps
+    the two identical. If the gate fires more than once, the longest segment
+    wins. A segment still open when the clip ends is kept: live, the gate would
+    have run on a little longer.
+    """
+    params = params or GateParams.v2_default()
+    captured = []
+
+    def grab(frames, times, wh):
+        captured.append((frames, times))
+        return None, 0.0            # "unusable": no hold, the gate just resets
+
+    gate = MotionGate(grab, params, verbose=False)
+    for f, t in zip(raw, timestamps):
+        gate.update(None if np.isnan(f).any() else f, float(t), frame_wh)
+    if gate.recording and sum(f is not None for f in gate._frames) >= params.min_frames:
+        captured.append((gate._frames, gate._times))
+    if not captured:
+        return None
+    frames, times = max(captured, key=lambda c: len(c[0]))
+    seg = np.stack([f if f is not None else np.full((21, 3), np.nan) for f in frames])
+    return seg.astype(np.float32), np.asarray(times, dtype=np.float64)

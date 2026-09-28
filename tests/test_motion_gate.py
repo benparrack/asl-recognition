@@ -129,3 +129,62 @@ def test_v1_mode_keeps_old_behaviour():
     gate = MotionGate(clf, params, verbose=False)
     events, _ = run(gate, stream(("still", "I", 0.5), ("J", "I", 1.0), ("still", "I", 1.5)))
     assert events and events[0][1]["label"] in config.MOTION_LETTERS
+
+
+# ------------------------------------------------------------------ offline segmentation
+@pytest.mark.parametrize("letter, shape", [("J", "I"), ("Z", "D")])
+def test_gate_segment_is_exactly_what_the_live_gate_classifies(letter, shape):
+    """Training cuts clips with gate_segment; live, the demo's gate hands the
+    classifier its buffer. On the same recording they must be the same frames."""
+    raw, t, w, h = make_clip(letter, shape, rest_before=0.5, rest_after=0.5,
+                             drop_frames=(20, 21))
+    seen = []
+    gate = MotionGate(lambda f, ts, wh: (seen.append((f, ts)), (None, 0.0))[1],
+                      GateParams.v2_default(), verbose=False)
+    for i in range(len(t)):
+        gate.update(None if np.isnan(raw[i]).any() else raw[i], t[i], (w, h))
+    assert len(seen) == 1
+
+    from motion_gate import gate_segment
+    seg, seg_t = gate_segment(raw, t, (w, h))
+    live = np.stack([f if f is not None else np.full((21, 3), np.nan) for f in seen[0][0]])
+    np.testing.assert_array_equal(seg, live.astype(np.float32))
+    np.testing.assert_array_equal(seg_t, seen[0][1])
+    assert seg_t[0] < 0.5 < seg_t[-1] and seg_t[-1] - seg_t[0] < t[-1] - 0.7   # rest trimmed
+
+
+def test_gate_cut_training_clip_matches_the_bare_letter():
+    """The point of cutting: a 2 s window with still hands either side should
+    featurise like the letter alone, not like a letter squeezed into half the
+    time axis."""
+    from data import motion_features as mf
+    from motion_gate import gate_segment
+    raw, t, w, h = make_clip("J", "I", rest_before=0.5, rest_after=0.5)
+    bare = mf.clip_to_features(*make_clip("J", "I"))
+    seg = gate_segment(raw, t, (w, h))
+    cut = mf.clip_to_features(seg[0], seg[1], w, h)
+    whole = mf.clip_to_features(raw, t, w, h)
+
+    def gap(a):
+        return np.abs(a[:, mf.MOTION_SLICE] - bare[:, mf.MOTION_SLICE]).mean()
+    assert gap(cut) < 0.5 * gap(whole)
+
+
+def test_held_clip_is_not_cut_and_stays_whole(tmp_path):
+    from data.capture_motion_v2 import save_clip
+    from data.motion_dataset_v2 import load_model_clip
+    from motion_gate import gate_segment
+    raw, t, w, h = make_clip("still", "I", duration=2.0)
+    assert gate_segment(raw, t, (w, h)) is None
+    row = save_clip(tmp_path / "NONE", tmp_path, "NONE", 0, list(raw), list(t), w, h,
+                    subtype="hold_I", signer="s", session="x")
+    assert len(load_model_clip(tmp_path / row["path"])[0]) == len(raw)
+
+
+def test_capture_warns_when_gate_would_not_fire():
+    from data.capture_motion_v2 import gate_note
+    slow, t, w, h = make_clip("J", "I", duration=6.0)          # a very slow trace
+    fast, t2, _, _ = make_clip("J", "I", rest_before=0.5, rest_after=0.5)
+    assert "DID NOT FIRE" in gate_note("J", list(slow), list(t + 100.0), w, h)
+    assert gate_note("J", list(fast), list(t2), w, h).startswith("last clip: gate cut")
+    assert gate_note("NONE", list(slow), list(t), w, h) == ""

@@ -37,8 +37,9 @@ across; leading/trailing undetected frames are trimmed. Tail zero-padding (v1)
 is gone: it made short and long clips look structurally different for reasons
 unrelated to the letter.
 
-Clip duration is deliberately NOT a feature. Training clips are fixed 2 s
-windows, live clips are gate-segmented, so a duration channel would be a
+Clip duration is deliberately NOT a feature. Training clips are cut by the gate
+code offline and live clips by the same gate online, but the live cut depends on
+--motion-threshold and the camera's frame rate, so a duration channel would be a
 train/serve mismatch waiting to happen.
 
 ASPECT RATIO
@@ -168,8 +169,9 @@ def augment_raw_clip(raw: np.ndarray, timestamps: np.ndarray, frame_w: int, fram
       the SAME transform on every frame (a per-frame jitter would inject fake
       motion)
     - time-stretch: a smooth monotone warp of the timestamps
-    - random temporal crop of up to 15% at each end, standing in for the
-      difference between a fixed 2 s capture window and a gate-segmented live clip
+    - random temporal crop of up to 10% at each end: jitter on where the gate
+      starts and stops (clips arrive already gate-cut, so a bigger crop would
+      start eating the letter itself)
     - random frame drop (frames become NaN, i.e. "undetected")
     - small Gaussian landmark noise
     No mirroring, ever -- see the module docstring.
@@ -200,8 +202,8 @@ def augment_raw_clip(raw: np.ndarray, timestamps: np.ndarray, frame_w: int, fram
         t = t * rng.uniform(0.85, 1.15)
 
     # Temporal crop.
-    lo = int(rng.uniform(0, 0.15) * T)
-    hi = T - int(rng.uniform(0, 0.15) * T)
+    lo = int(rng.uniform(0, 0.10) * T)
+    hi = T - int(rng.uniform(0, 0.10) * T)
     raw, t = raw[lo:hi], t[lo:hi]
 
     # Frame drop.

@@ -11,6 +11,10 @@ Controls:
     n       skip to the next label (keeps what was captured)
     q       quit early (keeps what was captured)
 
+After each J/Z clip the screen says whether the live gate would have fired on
+it ("gate cut 0.43-1.20s"). "GATE DID NOT FIRE" means the demo would never
+catch that trace; press r and trace a little faster or bigger.
+
 WHAT CHANGED FROM v1, AND WHY
 =============================
 v1 (capture_motion.py) saved normalise_landmarks() output per frame: wrist at
@@ -130,6 +134,26 @@ def append_metadata(rows: list[dict], csv_path: Path = config.MOTION_V2_METADATA
         writer.writerows(rows)
 
 
+def gate_note(label: str, frames: list, timestamps: list, frame_w: int, frame_h: int) -> str:
+    """
+    Would the live J/Z gate (default threshold) have fired on this clip? For J
+    and Z a "no" matters: the demo would never catch that clip, and training cuts
+    clips with the same gate (motion_dataset_v2.load_model_clip), so it would
+    train on the whole window instead. Shown on screen so a too-slow trace gets
+    redone on the spot rather than discovered after the session.
+    """
+    from motion_gate import gate_segment
+
+    raw = np.stack([f if f is not None else np.full((21, 3), np.nan) for f in frames])
+    t = np.asarray(timestamps, dtype=np.float64)
+    seg = gate_segment(raw, t - t[0], (frame_w, frame_h))
+    if seg is not None:
+        return f"last clip: gate cut {seg[1][0]:.2f}-{seg[1][-1]:.2f}s"
+    if label == config.MOTION_NONE:
+        return ""
+    return "last clip: GATE DID NOT FIRE (trace faster/bigger) -- r to redo"
+
+
 # ------------------------------------------------------------------ camera loop
 def _draw(cv2, display, lines, colour, big=None):
     for i, line in enumerate(lines):
@@ -238,9 +262,12 @@ def main() -> None:
             if label == config.MOTION_NONE:
                 subtype, prompt = none_prompt(prompt_idx, rng)
 
+            note = ""
             while len(saved) < args.clips:
                 head = [f"[{li}/{len(args.labels)}] {label}: {prompt}",
                         f"clip {len(saved)}/{args.clips}   SPACE to record"]
+                if note:
+                    head.append(note)
                 key = wait_for_key(cv2, cap, head)
                 if key == ord("q"):
                     return
@@ -252,6 +279,11 @@ def main() -> None:
                         (config.MOTION_V2_DIR / last["path"]).unlink(missing_ok=True)
                         all_rows.remove(last)
                         print(f"[capture-v2] discarded {last['path']}")
+                        if label == config.MOTION_NONE:
+                            # Redo the same prompt, so r doesn't skip a sub-type.
+                            prompt_idx -= 1
+                            subtype, prompt = last["subtype"], last["prompt"]
+                        note = ""
                     continue
 
                 countdown(cv2, cap, head[:1], args.countdown)
@@ -269,6 +301,9 @@ def main() -> None:
                 all_rows.append(row)
                 print(f"[capture-v2] {label} {len(saved)}/{args.clips} [{subtype or '-'}] "
                       f"{row['n_detected']}/{row['n_frames']} detected -> {row['path']}")
+                note = gate_note(label, frames, stamps, fw, fh)
+                if note:
+                    print(f"[capture-v2]   {note}")
 
                 if label == config.MOTION_NONE:
                     prompt_idx += 1
