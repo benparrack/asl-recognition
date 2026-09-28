@@ -68,7 +68,7 @@ def confusion_matrix(y_true, y_pred, num_classes: int) -> np.ndarray:
     return cm
 
 
-def per_class_metrics(cm: np.ndarray) -> pd.DataFrame:
+def per_class_metrics(cm: np.ndarray, classes=None) -> pd.DataFrame:
     """
     Precision, recall, and F1 per class, from the confusion matrix.
 
@@ -93,7 +93,7 @@ def per_class_metrics(cm: np.ndarray) -> pd.DataFrame:
     f1 = np.divide(2 * precision * recall, denom, out=np.zeros_like(tp), where=denom > 0)
 
     return pd.DataFrame({
-        "class": config.CLASSES[:num_classes],
+        "class": (config.CLASSES if classes is None else list(classes))[:num_classes],
         "precision": precision,
         "recall": recall,
         "f1": f1,
@@ -167,14 +167,17 @@ def plot_confusion_matrix(cm, classes, out_path, annotate_threshold: float = 0.0
     cm_norm = np.divide(cm, row_sums, out=np.zeros_like(cm, dtype=float), where=row_sums > 0)
 
     n = len(classes)
-    fig, ax = plt.subplots(figsize=(max(8, n * 0.4), max(8, n * 0.4)))
+    # Capped so a 250-sign matrix stays a sane image; letters (n=24) are unaffected.
+    side = min(max(8, n * 0.4), 30)
+    fig, ax = plt.subplots(figsize=(side, side))
     im = ax.imshow(cm_norm, cmap="Blues", vmin=0, vmax=1)
     fig.colorbar(im, ax=ax, label="fraction of true class")
 
     ax.set_xticks(range(n))
     ax.set_yticks(range(n))
-    ax.set_xticklabels(classes, rotation=90, fontsize=7)
-    ax.set_yticklabels(classes, fontsize=7)
+    tick_font = 7 if n <= 60 else 3
+    ax.set_xticklabels(classes, rotation=90, fontsize=tick_font)
+    ax.set_yticklabels(classes, fontsize=tick_font)
     ax.set_xlabel("Predicted")
     ax.set_ylabel("True")
     ax.set_title("Confusion matrix (row-normalised)")

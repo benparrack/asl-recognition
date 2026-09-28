@@ -90,3 +90,24 @@ def write_synthetic_motion_dataset(root, n_signers=5, per_label=4, seed=0):
 @pytest.fixture(scope="session")
 def synthetic_motion_model():
     return train_synthetic_motion_model()
+
+
+@pytest.fixture(scope="session")
+def synthetic_words(tmp_path_factory):
+    """A preprocessed synthetic GISLR cache and a word checkpoint trained on it
+    through the real train_words.py CLI. Returns (cache_dir, out_dir, ckpt_path).
+    Numbers from this model only check the code, not sign recognition."""
+    import subprocess
+    from data.synthetic_gislr import write_dataset
+
+    base = tmp_path_factory.mktemp("words")
+    write_dataset(base / "raw", n_signs=8, n_participants=7, reps=4, seed=1)
+    subprocess.run([sys.executable, str(_ROOT / "src/data/preprocess_gislr.py"),
+                    "--raw-dir", str(base / "raw"), "--cache-dir", str(base / "cache"),
+                    "--stats-out", str(base / "stats.json"), "--workers", "2"],
+                   check=True, capture_output=True)
+    subprocess.run([sys.executable, str(_ROOT / "src/train_words.py"),
+                    "--cache-dir", str(base / "cache"), "--out-dir", str(base / "out"),
+                    "--epochs", "12", "--workers", "0", "--dim", "64", "--no-amp"],
+                   check=True, capture_output=True)
+    return base / "cache", base / "out", base / "out" / "words_transformer_full_best.pt"
