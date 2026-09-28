@@ -1,0 +1,40 @@
+{
+  "source": "data/raw/ben_s1/desk/PEACE/*.jpg",
+  "n_frames": 80,
+  "frame_size": [
+    640,
+    480
+  ],
+  "holistic": [
+    {
+      "model_complexity": 0,
+      "ms_per_frame": 32.88810882500002,
+      "fps": 30.406126582743678,
+      "pose_frac": 1.0,
+      "hand_frac": 0.7375
+    },
+    {
+      "model_complexity": 1,
+      "ms_per_frame": 41.065548337473956,
+      "fps": 24.35131248661448,
+      "pose_frac": 1.0,
+      "hand_frac": 0.9125
+    },
+    {
+      "model_complexity": 2,
+      "ms_per_frame": 88.38715605002108,
+      "fps": 11.313861025623094,
+      "pose_frac": 1.0,
+      "hand_frac": 0.9
+    }
+  ],
+  "word_model": {
+    "gru": {
+      "ms_per_clip_incl_features": 3.0056796799908625
+    },
+    "transformer": {
+      "ms_per_clip_incl_features": 2.357177420053631
+    }
+  },
+  "device": "cuda"
+}
