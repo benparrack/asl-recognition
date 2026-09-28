@@ -235,3 +235,26 @@ pairs actually drive the errors.
 - test set still untouched, deliberately -- waiting on ablation results and
   live-test/domain-gap conclusions before finalizing which checkpoint is "the"
   model for the one-time test evaluation.
+
+## J/Z motion v1 diagnosis (2026-09-28): the "motion" model doesn't use motion
+- v1 MotionGRU reported 0.967 best val acc (session-disjoint: signers `ben`,
+  `ben_j2`, `ben_j3` are three sessions of one person, 15 J + 15 Z clips each,
+  16-25 frames per 1.0 s clip).
+- **A logistic regression on the FIRST FRAME ALONE separates J from Z at 1.000
+  held-out accuracy in every leave-one-session-out fold** (3/3 folds). The
+  order-free mean-of-frames vector does the same (1.000, 3/3). Reproduced
+  2026-09-28 directly from `data/motion/*.npz`.
+- Why: J is traced with the I handshape (pinky up) and Z with the 1/D handshape
+  (index up). The clips store only `normalise_landmarks()` output per frame
+  (wrist at origin, unit scale), so **the hand's path through space is thrown
+  away at capture time**. What's left is handshape, and handshape alone solves
+  the task. The GRU learned "I-shape vs 1-shape", not "hook vs zigzag".
+- Consequences for the live system: a held I is indistinguishable from J, a
+  held D/1 from Z. The gate is a forced J-or-Z choice with no "neither" class,
+  so any movement between letters gets labelled J or Z (this is the "static
+  letters feel worse with --motion-checkpoint" symptom).
+- Can't be repaired: raw positions were never saved. v2 (below) re-records
+  with raw landmarks, adds a NONE class, and ships an anti-shortcut diagnostic.
+- Report-worthy in the same way as the split-leakage finding: a 0.967 number
+  from an honest session-disjoint split can still be the wrong kind of right.
+  The split was fine; the *features* leaked the answer through a shortcut.
