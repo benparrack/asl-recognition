@@ -8,44 +8,18 @@ the same load_motion_classifier the demo uses.
 import argparse
 
 import numpy as np
-import pandas as pd
 import torch
 
 import config
 from data import motion_features as mf
-from data.capture_motion_v2 import (
-    METADATA_HEADER, append_metadata, next_clip_id, none_prompt, save_clip,
-)
+from conftest import frames_from_raw as _frames_from_raw, write_synthetic_motion_dataset
+from data.capture_motion_v2 import METADATA_HEADER, next_clip_id, none_prompt, save_clip
 from data.motion_dataset_v2 import (
     REQUIRED_COLUMNS, MotionClipDatasetV2, load_motion_v2_metadata, split_motion_v2,
 )
 from data.synthetic_motion import random_clip
 from models.motion import MotionGRUv2
 from motion_gate import MotionClassifierV2, load_motion_classifier
-
-
-def _frames_from_raw(raw):
-    return [None if np.isnan(f).any() else f for f in raw]
-
-
-def _write_dataset(root, n_signers=5, per_label=4, seed=0):
-    rng = np.random.default_rng(seed)
-    rows = []
-    for s in range(n_signers):
-        signer = f"synth_{s}"
-        for label in config.MOTION_V2_CLASSES:
-            out_dir = root / signer / "sess" / label
-            for k in range(per_label):
-                raw, t, w, h = random_clip(label, rng)
-                subtype = ""
-                if label == config.MOTION_NONE:
-                    subtype, _ = none_prompt(k, rng)
-                rows.append(save_clip(out_dir, root, label, next_clip_id(out_dir, label),
-                                      _frames_from_raw(raw), list(t + 1000.0), w, h,
-                                      subtype=subtype, signer=signer, session="sess"))
-    csv_path = root / "meta.csv"
-    append_metadata(rows, csv_path)
-    return csv_path
 
 
 def test_metadata_has_required_columns():
@@ -79,7 +53,7 @@ def test_save_clip_roundtrip(tmp_path):
 
 
 def test_dataset_split_and_checkpoint_roundtrip(tmp_path):
-    csv_path = _write_dataset(tmp_path)
+    csv_path = write_synthetic_motion_dataset(tmp_path)
     df = load_motion_v2_metadata(csv_path)
     assert len(df) == 5 * 3 * 4
     tr, va, te = split_motion_v2(df)

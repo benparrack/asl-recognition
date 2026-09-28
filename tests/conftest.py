@@ -58,6 +58,35 @@ def train_synthetic_motion_model(n_per_class=60, epochs=25, zero_handshape=False
     return model
 
 
+def frames_from_raw(raw):
+    """(T, 21, 3) with NaN rows -> the list-of-(array | None) the capture loop builds."""
+    return [None if np.isnan(f).any() else f for f in raw]
+
+
+def write_synthetic_motion_dataset(root, n_signers=5, per_label=4, seed=0):
+    """Write synthetic J/Z/NONE clips in the capture_motion_v2 on-disk format
+    (one signer id per fake session) and return the metadata CSV path."""
+    import config
+    from data.capture_motion_v2 import append_metadata, next_clip_id, none_prompt, save_clip
+    from data.synthetic_motion import random_clip
+
+    rng = np.random.default_rng(seed)
+    rows = []
+    for s in range(n_signers):
+        signer = f"synth_{s}"
+        for label in config.MOTION_V2_CLASSES:
+            out_dir = root / signer / "sess" / label
+            for k in range(per_label):
+                raw, t, w, h = random_clip(label, rng)
+                subtype = none_prompt(k, rng)[0] if label == config.MOTION_NONE else ""
+                rows.append(save_clip(out_dir, root, label, next_clip_id(out_dir, label),
+                                      frames_from_raw(raw), list(t + 1000.0), w, h,
+                                      subtype=subtype, signer=signer, session="sess"))
+    csv_path = root / "meta.csv"
+    append_metadata(rows, csv_path)
+    return csv_path
+
+
 @pytest.fixture(scope="session")
 def synthetic_motion_model():
     return train_synthetic_motion_model()
