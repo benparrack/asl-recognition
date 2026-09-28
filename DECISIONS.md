@@ -43,3 +43,31 @@ reasoning in a line or two. Newest at the bottom.
 - **Diagnostic "neutralisation" uses the training mean**, not literal zeros. The model
   standardises its input internally, so the training mean becomes 0 after
   normalisation, i.e. an "average" value rather than an out-of-distribution spike.
+- **Word pipeline built and tested on a synthetic GISLR-format dataset**
+  (`src/data/synthetic_gislr.py`) while the real download is blocked. It writes the
+  documented schema (train.csv, sign map, long-format parquets, NaN hands, both a zip
+  and a directory layout), and includes left-handed participants and two-handed signs.
+  Every number it produces is a code check, not a result, and is labelled that way everywhere.
+- **Landmark selection: 84 of 543 points** (both hands, 9 upper-body pose points, 33
+  face points). The exact lists are named constants in `src/data/holistic_landmarks.py`,
+  and their hash goes into word checkpoints. The cache stores raw selected landmarks
+  (NaN kept), not features, so features can change without re-reading ~94k parquets.
+- **One cache shard per participant** (`<pid>.npy` float16 plus a per-shard CSV). 21
+  participants suit ~20 workers, and a shard is written under a temp name then renamed,
+  so an interrupted run never leaves a half-shard that looks complete.
+- **Dominant hand = clearly more detected frames, else more wrist travel.** PROMPT
+  §C1 offers either. Frame count alone picked the wrong hand on two-handed signs,
+  because the static base hand is tracked more steadily than the moving dominant
+  one (caught by `test_left_handed_signer_matches_right_handed`). Counts decide
+  when one hand appears in under half as many frames as the other; otherwise travel decides.
+- **Body-relative coordinates normalise x and y separately** (x by shoulder width,
+  y by nose-to-shoulder height). GISLR has no frame sizes, and phone video differs
+  from a 4:3 webcam, so a single isotropic scale would make location features
+  depend on the camera's aspect ratio. Tested by stretching x by 1.4 with no
+  change in any feature.
+- **Words path: Holistic runs on the un-flipped frame**, and the flip is for display
+  only (PROMPT §C1). The letters path keeps flipping before detection, which is
+  unchanged.
+- **Live word clips are resampled to 30 fps (nearest frame) before featurising**, because
+  velocity channels are per-frame differences. GISLR's frame rate isn't in the data; 30
+  is an assumption to check against the `frame` column spacing once the data is here.
