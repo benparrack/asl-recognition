@@ -22,7 +22,21 @@ RESULTS_DIR = PROJECT_ROOT / "results"
 MOTION_DIR = DATA_DIR / "motion"
 MOTION_METADATA_CSV = MOTION_DIR / "motion_metadata.csv"
 
-for _d in (RAW_DIR, PROCESSED_DIR, CHECKPOINT_DIR, RESULTS_DIR, MOTION_DIR):
+# Motion v2 (J/Z/NONE) lives in its own tree so v1 and v2 clips can never mix:
+# v1 stored only wrist-normalised landmarks (trajectory destroyed, see NOTES.md
+# 2026-09-28), v2 stores raw image-normalised landmarks + timestamps.
+MOTION_V2_DIR = DATA_DIR / "motion_v2"
+MOTION_V2_METADATA_CSV = MOTION_V2_DIR / "motion_v2_metadata.csv"
+
+# Word-level data (Google Isolated Sign Language Recognition, Kaggle `asl-signs`).
+# The raw competition download stays under data/external/ (gitignored); the
+# compact per-sequence cache that training reads lives under processed/.
+GISLR_RAW_DIR = DATA_DIR / "external" / "gislr"
+GISLR_CACHE_DIR = PROCESSED_DIR / "gislr"
+GISLR_INDEX_CSV = GISLR_CACHE_DIR / "index.csv"
+GISLR_SPLIT_CSV = GISLR_CACHE_DIR / "split.csv"
+
+for _d in (RAW_DIR, PROCESSED_DIR, CHECKPOINT_DIR, RESULTS_DIR, MOTION_DIR, MOTION_V2_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
 # The metadata CSV is the backbone of the whole project. See src/data/build_metadata.py.
@@ -45,6 +59,20 @@ MOTION_LETTERS = ["J", "Z"]
 # CLASS_TO_IDX -- different problem, different index space.
 MOTION_CLASS_TO_IDX = {c: i for i, c in enumerate(MOTION_LETTERS)}
 MOTION_IDX_TO_CLASS = {i: c for c, i in MOTION_CLASS_TO_IDX.items()}
+
+# v2 adds a rejection class. Without it the gate is a forced J-or-Z choice and
+# any hand movement between static letters gets labelled J or Z.
+MOTION_NONE = "NONE"
+MOTION_V2_CLASSES = MOTION_LETTERS + [MOTION_NONE]
+MOTION_V2_CLASS_TO_IDX = {c: i for i, c in enumerate(MOTION_V2_CLASSES)}
+MOTION_V2_IDX_TO_CLASS = {i: c for c, i in MOTION_V2_CLASS_TO_IDX.items()}
+
+# NONE sub-types, cycled through by capture_motion_v2.py. Recorded per clip so
+# diagnose_motion.py can report false positives per sub-type -- hold_I -> J and
+# hold_D -> Z are the two that matter most, since those are exactly the
+# handshape-only shortcuts v1 fell for.
+MOTION_NONE_SUBTYPES = ["hold_I", "hold_D", "hold_static", "between_letters", "wave_reposition"]
+MOTION_V2_CLIP_SECONDS = 2.0     # v1 used 1.0 s, too tight for a full J
 
 INCLUDE_MOTION_LETTERS = False   # flip to True only once you feed sequences
 CLASSES = STATIC_LETTERS + (MOTION_LETTERS if INCLUDE_MOTION_LETTERS else [])
