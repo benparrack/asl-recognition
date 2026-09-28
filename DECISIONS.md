@@ -123,3 +123,25 @@ reasoning in a line or two. Newest at the bottom.
 - **Added `src/eval_word_videos.py`** for the ~20-sign personal test. It scores each file
   both as one whole clip (model only) and with auto segmentation (model + segmenter),
   so a poor live number can be attributed to one or the other.
+
+## 2026-09-28 (same session, follow-up while waiting for recordings)
+
+- **Motion v2 training clips are cut by the live gate's own code**
+  (`motion_gate.gate_segment`, applied in `motion_dataset_v2.load_model_clip`
+  for train, val, test and diagnostics). Capture records a fixed 2 s window
+  (still → letter → still), but live the model only sees the gate's cut, so
+  otherwise a J would fill ~half the time axis in training and nearly all of it
+  live. The previous stand-in, a random 0–15 % end crop, didn't close that gap.
+  On synthetic clips the cut features are 2–3× closer to the bare letter's than
+  the full window's. A test checks that `gate_segment` returns exactly the frames
+  the live gate passes to the classifier. Clips the gate never fires on (held
+  hands) stay whole. The augmentation end crop dropped to 10 %, as it now only
+  jitters the gate boundaries. The checkpoint records `train_segmentation`.
+  Caveat: training uses the default threshold 1.0. A very different
+  `--motion-threshold` live would cut clips differently from training.
+- **The capture screen reports after each J/Z clip whether the gate would have
+  fired.** A trace too slow to trigger it would never be caught live, and would
+  train on the full window, so it should be redone during the session, not found
+  afterwards.
+- **`r` on a NONE clip now redoes the same prompt.** It used to advance the
+  sub-type rotation, so each redo skipped one sub-type.

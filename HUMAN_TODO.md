@@ -38,6 +38,12 @@ last clip, n moves to the next label, q quits (anything already captured is kept
   v1 would have called J and Z.
 - Clips with fewer than 10 frames of detected hand are thrown away on the spot
   and the prompt repeats.
+- After each J/Z clip the screen shows `last clip: gate cut ...` or
+  `GATE DID NOT FIRE`. The second means the live demo would never catch that
+  trace, so press **r** and redo it a bit faster or bigger. If it keeps
+  happening at a speed that feels natural, note it: the default threshold (1.0
+  hand-lengths/s) is then too high for you, and should be lowered for both
+  training and the demo.
 
 Success: `data/motion_v2/motion_v2_metadata.csv` has about 300 rows across 5
 signer ids, and

@@ -5,7 +5,7 @@ pushed. It asked no questions: judgement calls are in DECISIONS.md and blockers 
 HUMAN_TODO.md.
 
 **Headline:** the J/Z v2 and word-recognition pipelines are built end to end and
-pass 65 headless tests. **Neither has been trained on real data.** For J/Z v2,
+pass 70 headless tests. **Neither has been trained on real data.** For J/Z v2,
 recordings need a person and a webcam. For words, Kaggle returns 403 for
 `asl-signs` because the competition rules haven't been accepted on this account.
 So there is **no word checkpoint, no real val/test number and no real ablation
@@ -30,7 +30,7 @@ result**. Every word number below is a synthetic code check.
 | `eval_word_videos.py` (personal-video scorer) | `test_words_live.py::test_personal_video_scorer_matches_offline` |
 | Holistic FPS measured | `bench_words_fps.py` → `results/words_fps.json` |
 
-`python -m pytest`: **65 passed** (about 50 s, no webcam, no dataset).
+`python -m pytest`: **70 passed** (about 80 s, no webcam, no dataset).
 
 ## Verifiable only live or with data
 
@@ -102,3 +102,13 @@ c528a06 Add v2 motion features (trajectory, velocity, rotation) with synthetic t
 c765385 Ignore logs/ and data/external/
 acb87a0 WIP: J/Z motion gate v1 (pre-v2 snapshot)
 ```
+
+## Follow-up (same day, before recording)
+
+- Motion v2 training clips are now cut by the live gate's own code, so train
+  and live see the same slice of each clip (DECISIONS.md). Tested: the offline
+  cut equals the live gate's buffer frame for frame.
+- The capture screen now says after each J/Z clip whether the live gate would
+  have fired, so slow traces get redone during the session.
+- Fixed `r` on NONE clips skipping a sub-type.
+- GISLR re-checked: still 403.
