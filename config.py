@@ -15,7 +15,14 @@ PROCESSED_DIR = DATA_DIR / "processed"  # cropped images, extracted landmarks
 CHECKPOINT_DIR = PROJECT_ROOT / "checkpoints"
 RESULTS_DIR = PROJECT_ROOT / "results"
 
-for _d in (RAW_DIR, PROCESSED_DIR, CHECKPOINT_DIR, RESULTS_DIR):
+# Motion letters (J, Z) captured as landmark SEQUENCES, not images -- there's no
+# raw-pixel intermediate stage, capture_motion.py extracts landmarks live and
+# writes straight here. Separate from RAW_DIR/PROCESSED_DIR since it's a
+# different data shape entirely (variable-length (T, 63) arrays, not images).
+MOTION_DIR = DATA_DIR / "motion"
+MOTION_METADATA_CSV = MOTION_DIR / "motion_metadata.csv"
+
+for _d in (RAW_DIR, PROCESSED_DIR, CHECKPOINT_DIR, RESULTS_DIR, MOTION_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
 # The metadata CSV is the backbone of the whole project. See src/data/build_metadata.py.
@@ -30,6 +37,14 @@ LANDMARKS_NPZ = PROCESSED_DIR / "landmarks.npz"
 STATIC_LETTERS = list("ABCDEFGHIKLMNOPQRSTUVWXY")   # 24 letters, no J, no Z
 #STATIC_LETTERS = ["FIST", "PALM", "PEACE"]   # TEMPORARY: pipeline smoke test
 MOTION_LETTERS = ["J", "Z"]
+
+# Gated two-stage design chosen over folding J/Z into CLASSES: a separate small
+# sequence model (src/models/motion.py) handles just these two, triggered by a
+# motion-detector gate rather than retraining/complicating the static models
+# above, which already work well. MOTION_CLASS_TO_IDX is independent of
+# CLASS_TO_IDX -- different problem, different index space.
+MOTION_CLASS_TO_IDX = {c: i for i, c in enumerate(MOTION_LETTERS)}
+MOTION_IDX_TO_CLASS = {i: c for c, i in MOTION_CLASS_TO_IDX.items()}
 
 INCLUDE_MOTION_LETTERS = False   # flip to True only once you feed sequences
 CLASSES = STATIC_LETTERS + (MOTION_LETTERS if INCLUDE_MOTION_LETTERS else [])

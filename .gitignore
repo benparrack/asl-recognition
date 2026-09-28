@@ -1,6 +1,7 @@
 # Never commit datasets or weights -- they are large and they are not source.
 data/raw/
 data/processed/
+data/motion/
 checkpoints/
 *.pt
 *.pth
