@@ -2,8 +2,6 @@
 live-vs-offline parity (the demo adapter and the parquet loader must give
 identical features for identical landmarks)."""
 
-from types import SimpleNamespace
-
 import numpy as np
 import pytest
 
@@ -11,6 +9,7 @@ from data import holistic_features as hf
 from data import holistic_landmarks as hl
 from data.preprocess_gislr import parquet_to_raw, parquet_to_selected
 from data.synthetic_gislr import make_sequence, selected_to_long_df, sign_table
+from holistic_fakes import fake_holistic_results
 
 SIGNS = sign_table(12, seed=0)
 TWO_HANDED = next(s for s in SIGNS if s["two_handed"] and s["move"] != "still")
@@ -131,23 +130,6 @@ def test_resample_to_fps():
 
 
 # ------------------------------------------------------------------ parity
-def _fake_landmarks(arr):
-    if np.isnan(arr).any():
-        return None
-    return SimpleNamespace(landmark=[SimpleNamespace(x=float(p[0]), y=float(p[1]), z=float(p[2]))
-                                     for p in arr])
-
-
-def _fake_holistic_results(raw, i, refine_face=False):
-    face = raw["face"][i]
-    if refine_face and not np.isnan(face).any():
-        face = np.concatenate([face, np.zeros((10, 3), dtype=face.dtype)])   # 478 points
-    return SimpleNamespace(left_hand_landmarks=_fake_landmarks(raw["left_hand"][i]),
-                           right_hand_landmarks=_fake_landmarks(raw["right_hand"][i]),
-                           pose_landmarks=_fake_landmarks(raw["pose"][i]),
-                           face_landmarks=_fake_landmarks(face))
-
-
 @pytest.mark.parametrize("left_handed", [False, True])
 def test_live_adapter_matches_parquet_loader(left_handed):
     """A GISLR parquet, rendered frame by frame as mediapipe Holistic results
@@ -158,7 +140,7 @@ def test_live_adapter_matches_parquet_loader(left_handed):
     offline = parquet_to_selected(df)
 
     raw = parquet_to_raw(df)
-    live = np.stack([hf.frame_from_holistic(_fake_holistic_results(raw, i, refine_face=i % 2 == 0))
+    live = np.stack([hf.frame_from_holistic(fake_holistic_results(raw, i, refine_face=i % 2 == 0))
                      for i in range(len(offline))])
     np.testing.assert_array_equal(np.isnan(live), np.isnan(offline))
     fo, mo, _ = hf.sequence_to_features(offline)
