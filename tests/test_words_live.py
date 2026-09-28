@@ -142,3 +142,16 @@ def test_held_pose_does_not_retrigger(live):
     rec = WordRecogniser(clf)
     events = replay(rec, selected_to_raw(still), len(still))
     assert [e["reason"] for e in events] == ["motion_lull"]
+
+
+def test_personal_video_scorer_matches_offline(live):
+    """eval_word_videos.score_file, on landmark streams instead of decoded video."""
+    from eval_word_videos import hit, score_file
+    clf, val, cache, offline = live
+    full, _ = _with_rest(load_sequence(cache, val.iloc[0]))
+    frames = rec_frames(full)
+    r = score_file(frames, np.arange(len(frames)) / FPS, WH, clf,
+                   SegParams(min_confidence=0.0, lull_speed=0.0))
+    expected = clf.classes[int(offline[0].argmax())]
+    assert r["auto_n_events"] == 1
+    assert hit(r["whole_clip"], expected, 1) and hit(r["auto"], expected, 1)
