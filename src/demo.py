@@ -2,7 +2,10 @@
 Live webcam demo.
 
 Run:
-    python src/demo.py --checkpoint checkpoints/cnn_smoketest_best.pt
+    python src/demo.py --checkpoint checkpoints/mlp_pugeault_best.pt
+    python src/demo.py --checkpoint checkpoints/mlp_pugeault_best.pt \
+        --words-checkpoint checkpoints/words_transformer_full_best.pt
+    python src/demo.py ... --video clip.mp4 [--no-display]    # a file instead of the webcam
 
 Controls:
     q       quit
@@ -10,6 +13,8 @@ Controls:
     SPACE   append the current letter to the sentence
     s       append a literal space (word separator) to the sentence
     d       toggle the debug view (shows the model's actual input)
+    w       switch letters <-> words mode (needs --words-checkpoint)
+    t       words mode: start / stop a sign by hand (toggle; see below)
 
 MOTION LETTERS (J, Z), via --motion-checkpoint
 ================================================
@@ -28,6 +33,29 @@ The checkpoint's `feature_version` picks the behaviour:
                             hand-lengths per second (distance-invariant). A NONE
                             result releases the gate at once with no hold, so
                             moving between static letters costs nothing.
+
+WORDS MODE (GISLR isolated signs), via --words-checkpoint
+==========================================================
+Press 'w' to switch. Letters mode is untouched (Hands + MLP + optional J/Z
+gate). Words mode runs MediaPipe Holistic (hands, pose, face) and hands each
+frame to words_live.WordRecogniser, which cuts signs out of the stream and
+classifies each whole clip. The top-3 signs are shown and an accepted sign is
+appended to the sentence as a word.
+
+  * Holistic runs on the UN-flipped frame, like the GISLR recordings (they
+    were not mirrored); the mirror is for display only. Handedness is
+    canonicalised in the features anyway, so a left-handed signer also works.
+  * Segmentation is automatic by default: raise a hand to start, drop the
+    hands or hold still to finish. 't' starts/stops a clip by hand instead,
+    which is more reliable; --words-manual turns the automatic mode off.
+  * Every frame goes through the same holistic_features functions the
+    training data did. tests/test_words_live.py replays GISLR sequences
+    through this exact path and checks the predictions match evaluate_words.
+
+--video PATH reads a file instead of the webcam, using the file's own
+timestamps, so a recorded sign behaves as it would live. With --no-display it
+prints events and runs headless. That's how to test the ~20-sign personal set
+(HUMAN_TODO.md).
 
 WHY THE DEBUG VIEW MATTERS
 ==========================
@@ -61,6 +89,9 @@ from data.landmarks import (  # noqa: E402
     extract_landmarks, normalise_landmarks,
 )
 from motion_gate import GateParams, MotionGate, load_motion_classifier  # noqa: E402
+from data import holistic_features as hf  # noqa: E402
+from data import holistic_landmarks as hl  # noqa: E402
+from words_live import SegParams, WordClassifier, WordRecogniser  # noqa: E402
 
 
 class PredictionSmoother:
@@ -161,6 +192,125 @@ def draw_overlay(frame, bbox, letter, confidence, sentence, fps):
     return frame
 
 
+def letters_step(frame, kind, model, detector, transform, smoother, motion_gate, args,
+                 device, ts, letter, confidence):
+    """One frame of letters mode, the loop body from before words mode existed.
+    letter/confidence carry over from the previous frame (they stay on screen
+    while the J/Z gate is recording). Returns (display frame, bbox, letter,
+    confidence, debug crop, gate status)."""
+    bbox, gate_status = None, None
+    # Mirror -- capture_data.py also flipped, so this keeps handedness
+    # consistent with training. Remove it in one place and you must remove
+    # it in both.
+    frame = cv2.flip(frame, 1)
+
+    crop = None
+
+    if kind == "image":
+        crop, bbox = detect_and_crop(frame, detector, padding=args.padding, square=False)
+
+        if crop is not None:
+            # BGR (OpenCV) -> RGB PIL, matching how ASLImageDataset loaded
+            # training images. Skip the colour conversion and every channel is
+            # swapped relative to training.
+            crop = letterbox_square(crop, 256)
+            crop = cv2.resize(crop, (110, 110), interpolation=cv2.INTER_AREA)
+            crop = cv2.resize(crop, (256, 256), interpolation=cv2.INTER_LINEAR)
+            pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+            tensor = transform(pil).unsqueeze(0).to(device)   # add batch dim
+
+            with torch.no_grad():
+                probs = torch.softmax(model(tensor), dim=1)[0]
+
+            conf, idx = probs.max(dim=0)
+            confidence = conf.item()
+            letter = smoother.update(int(idx.item()), confidence)
+        else:
+            letter = smoother.update(None)
+            confidence = 0.0
+
+    else:  # kind == "landmark"
+        # MediaPipe finds the hand directly in the full frame -- no crop step
+        # needed, unlike the pixel models. One detector.process() call per
+        # frame gives us both the keypoints (for the model) and a bounding
+        # box (for the overlay), from the same detection.
+        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        raw = extract_landmarks(detector, image_rgb)
+
+        if raw is not None:
+            h, w = frame.shape[:2]
+            xs = raw[:, 0] * w
+            ys = raw[:, 1] * h
+            bbox = (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))
+        else:
+            bbox = None
+
+        gate_status = None
+        if motion_gate is not None:
+            gate_status = motion_gate.update(raw, ts, frame.shape[1::-1])
+            ev = gate_status.event
+            if ev and ev["outcome"] == "accepted":
+                letter, confidence = ev["label"], ev["confidence"]
+
+        skip_static = gate_status is not None and gate_status.skip_static
+
+        if not skip_static:
+            if raw is not None:
+                vec = normalise_landmarks(raw)
+                tensor = torch.from_numpy(vec).unsqueeze(0).to(device)   # (1, 63)
+
+                with torch.no_grad():
+                    probs = torch.softmax(model(tensor), dim=1)[0]
+
+                conf, idx = probs.max(dim=0)
+                confidence = conf.item()
+                letter = smoother.update(int(idx.item()), confidence)
+            else:
+                letter = smoother.update(None)
+                confidence = 0.0
+
+    return frame, bbox, letter, confidence, crop, gate_status
+
+
+def words_step(frame, holistic, words, ts):
+    """One frame of words mode. Holistic sees the UN-flipped frame (GISLR
+    wasn't mirrored); the returned frame is mirrored for display."""
+    h, w = frame.shape[:2]
+    results = holistic.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    lm = hf.frame_from_holistic(results)
+    status = words.update(lm, ts, (w, h))
+    hands = lm[:2 * hl.N_HAND, :2][~np.isnan(lm[:2 * hl.N_HAND, 0])]
+    bbox = None
+    if len(hands):
+        xs, ys = (1.0 - hands[:, 0]) * w, hands[:, 1] * h          # mirrored for display
+        bbox = (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))
+    return cv2.flip(frame, 1), bbox, status
+
+
+def on_word_event(ev, word_top, sentence, ts):
+    """Log a closed clip, append an accepted sign as a word, and return the
+    top-3 list to keep on screen."""
+    if not ev:
+        return word_top
+    print(f"[word] t={ts:.2f}s {ev['outcome']} ({ev['reason']}, {ev['n_frames']} frames): "
+          + ", ".join(f"{w} {p:.0%}" for w, p in ev["top"]), flush=True)
+    if ev["outcome"] == "accepted":
+        sentence.append(ev["top"][0][0] + " ")
+    return ev["top"] or word_top
+
+
+def draw_words_overlay(frame, top, status):
+    colour = (0, 165, 255) if status and status.state != "idle" else (200, 200, 200)
+    label = {"idle": "words: raise a hand or press t", "recording": "words: recording...",
+             "manual": "words: recording (t to stop)"}[status.state if status else "idle"]
+    cv2.putText(frame, label, (12, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colour, 2)
+    for k, (word, p) in enumerate(top):
+        cv2.putText(frame, f"{k + 1}. {word}  {p:.0%}", (12, 92 + 28 * k),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8 if k == 0 else 0.6,
+                    (0, 200, 0) if k == 0 else (200, 200, 200), 2 if k == 0 else 1)
+    return frame
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", required=True)
@@ -177,6 +327,21 @@ def main() -> None:
     parser.add_argument("--min-confidence", type=float, default=0.6)
     parser.add_argument("--padding", type=float, default=0.25,
                         help="MUST match what preprocess.py used")
+    parser.add_argument("--words-checkpoint", default=None,
+                        help="GISLR word model (train_words.py); enables words mode ('w')")
+    parser.add_argument("--start-in-words", action="store_true")
+    parser.add_argument("--words-manual", action="store_true",
+                        help="words mode: only 't' starts/stops a sign (no auto segmentation)")
+    parser.add_argument("--words-min-confidence", type=float, default=SegParams.min_confidence)
+    parser.add_argument("--words-lull-speed", type=float, default=SegParams.lull_speed,
+                        help="auto segmentation: hand speed (shoulder-widths/s) below which "
+                             "a held pose ends the sign; 0 disables lull endings")
+    parser.add_argument("--holistic-complexity", type=int, default=1, choices=[0, 1, 2],
+                        help="MediaPipe Holistic model_complexity; 1 ran ~24 FPS here, "
+                             "0 ~30 FPS (results/words_fps.json)")
+    parser.add_argument("--video", default=None, help="read this file instead of the webcam")
+    parser.add_argument("--no-display", action="store_true",
+                        help="no windows; print events (use with --video)")
     args = parser.parse_args()
 
     device = config.DEVICE
@@ -190,6 +355,25 @@ def main() -> None:
         motion_gate = MotionGate(motion_clf, GateParams.for_classifier(
             motion_clf, threshold=args.motion_threshold, min_confidence=args.min_confidence))
 
+    words = holistic = None
+    if args.words_checkpoint:
+        import mediapipe as mp
+        from evaluate_words import load_word_checkpoint
+        wmodel, wckpt = load_word_checkpoint(args.words_checkpoint, device)
+        words = WordRecogniser(WordClassifier(wmodel, wckpt, device),
+                               SegParams(min_confidence=args.words_min_confidence,
+                                         lull_speed=args.words_lull_speed),
+                               auto=not args.words_manual)
+        holistic = mp.solutions.holistic.Holistic(static_image_mode=False,
+                                                  model_complexity=args.holistic_complexity)
+        print(f"[demo] words: {len(wckpt['classes'])} signs, {wckpt['model']} / "
+              f"{wckpt['feature_set']}, val acc {wckpt['val_acc']:.4f}")
+    elif args.start_in_words:
+        raise ValueError("--start-in-words needs --words-checkpoint")
+    mode = "words" if args.start_in_words else "letters"
+    word_top: list[tuple[str, float]] = []
+    word_status = None
+
     # static_mode=False enables tracking between frames: faster and steadier on
     # video than treating every frame as an unrelated image.
     detector = build_detector(static_mode=False)
@@ -199,7 +383,9 @@ def main() -> None:
     # guarantees they cannot drift apart.
     transform = build_transforms(train=False)
 
-    cap = cv2.VideoCapture(args.camera)
+    cap = cv2.VideoCapture(args.video if args.video else args.camera)
+    if args.video and not cap.isOpened():
+        raise RuntimeError(f"Could not open video {args.video}")
     if not cap.isOpened():
         raise RuntimeError(
             f"Could not open camera {args.camera}. Check `ls /dev/video*` and that "
@@ -214,101 +400,57 @@ def main() -> None:
 
     gate_status = None
 
-    print("[demo] q quit | c clear | SPACE append | s space | d debug view")
+    print("[demo] q quit | c clear | SPACE append | s space | d debug view"
+          + (" | w letters/words | t start/stop sign" if words else ""))
     if motion_gate is not None:
         print("[demo] motion gate active -- move your hand through a J or Z to trigger it")
 
+    ts = 0.0
     while True:
         ok, frame = cap.read()
         if not ok:
             break
+        # A file's own clock, so a recorded sign has its real timing however
+        # fast this loop runs; the wall clock for the webcam.
+        ts = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0 if args.video else time.time()
 
-        # Mirror -- capture_data.py also flipped, so this keeps handedness
-        # consistent with training. Remove it in one place and you must remove
-        # it in both.
-        frame = cv2.flip(frame, 1)
-
-        crop = None
-
-        if kind == "image":
-            crop, bbox = detect_and_crop(frame, detector, padding=args.padding, square=False)
-
-            if crop is not None:
-                # BGR (OpenCV) -> RGB PIL, matching how ASLImageDataset loaded
-                # training images. Skip the colour conversion and every channel is
-                # swapped relative to training.
-                crop = letterbox_square(crop, 256)
-                crop = cv2.resize(crop, (110, 110), interpolation=cv2.INTER_AREA)
-                crop = cv2.resize(crop, (256, 256), interpolation=cv2.INTER_LINEAR)
-                pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
-                tensor = transform(pil).unsqueeze(0).to(device)   # add batch dim
-
-                with torch.no_grad():
-                    probs = torch.softmax(model(tensor), dim=1)[0]
-
-                conf, idx = probs.max(dim=0)
-                confidence = conf.item()
-                letter = smoother.update(int(idx.item()), confidence)
-            else:
-                letter = smoother.update(None)
-                confidence = 0.0
-
-        else:  # kind == "landmark"
-            # MediaPipe finds the hand directly in the full frame -- no crop step
-            # needed, unlike the pixel models. One detector.process() call per
-            # frame gives us both the keypoints (for the model) and a bounding
-            # box (for the overlay), from the same detection.
-            image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            raw = extract_landmarks(detector, image_rgb)
-
-            if raw is not None:
-                h, w = frame.shape[:2]
-                xs = raw[:, 0] * w
-                ys = raw[:, 1] * h
-                bbox = (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))
-            else:
-                bbox = None
-
-            gate_status = None
-            if motion_gate is not None:
-                gate_status = motion_gate.update(raw, time.time(), frame.shape[1::-1])
-                ev = gate_status.event
-                if ev and ev["outcome"] == "accepted":
-                    letter, confidence = ev["label"], ev["confidence"]
-
-            skip_static = gate_status is not None and gate_status.skip_static
-
-            if not skip_static:
-                if raw is not None:
-                    vec = normalise_landmarks(raw)
-                    tensor = torch.from_numpy(vec).unsqueeze(0).to(device)   # (1, 63)
-
-                    with torch.no_grad():
-                        probs = torch.softmax(model(tensor), dim=1)[0]
-
-                    conf, idx = probs.max(dim=0)
-                    confidence = conf.item()
-                    letter = smoother.update(int(idx.item()), confidence)
-                else:
-                    letter = smoother.update(None)
-                    confidence = 0.0
+        if mode == "words":
+            frame, bbox, word_status = words_step(frame, holistic, words, ts)
+            letter, confidence, crop, gate_status = None, 0.0, None, None
+            word_top = on_word_event(word_status.event, word_top, sentence, ts)
+        else:
+            frame, bbox, letter, confidence, crop, gate_status = letters_step(
+                frame, kind, model, detector, transform, smoother, motion_gate, args, device, ts,
+                letter, confidence)
 
         now = time.time()
         fps = 0.9 * fps + 0.1 / max(now - last_t, 1e-6)   # smoothed
         last_t = now
+
+        if args.no_display:
+            continue
 
         frame = draw_overlay(frame, bbox, letter, confidence, sentence, fps)
         if gate_status is not None and gate_status.recording:
             cv2.putText(frame, f"recording J/Z... ({gate_status.buffered})",
                         (12, frame.shape[0] - 68), cv2.FONT_HERSHEY_SIMPLEX,
                         0.6, (0, 165, 255), 2)
+        if mode == "words":
+            frame = draw_words_overlay(frame, word_top, word_status)
         cv2.imshow("ASL Fingerspelling", frame)
 
         if show_debug and crop is not None:
             cv2.imshow("model input", crop)
 
         key = cv2.waitKey(1) & 0xFF
-        if key == ord("q"):
+        if key == ord("w") and words is not None:
+            mode = "letters" if mode == "words" else "words"
+            words.reset()
+            word_top, word_status = [], None
+            print(f"[demo] {mode} mode")
+        elif key == ord("t") and mode == "words":
+            word_top = on_word_event(words.toggle(ts), word_top, sentence, ts)
+        elif key == ord("q"):
             break
         elif key == ord("c"):
             sentence.clear()
@@ -321,6 +463,10 @@ def main() -> None:
             if not show_debug:
                 cv2.destroyWindow("model input")
 
+    if words is not None:                                  # a file ended mid-sign
+        on_word_event(words.flush(), word_top, sentence, ts)
+    if args.no_display:
+        print(f"[demo] sentence: {''.join(sentence).strip()!r}")
     cap.release()
     cv2.destroyAllWindows()
 
