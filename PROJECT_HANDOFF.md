@@ -5,6 +5,27 @@ setup-and-first-results phase.
 
 ---
 
+## 0. Status as of 2026-09-28 (read this first)
+
+Sections 1–7 are the original setup-phase handoff and still hold for the
+environment, data and gotchas. §8–10 below have been rewritten for the current
+state. For per-run detail read NOTES.md; for every judgement call, DECISIONS.md;
+for what only Ben can do, HUMAN_TODO.md; for the last autonomous run,
+AUTONOMOUS_RUN_REPORT.md.
+
+| Part | State | Where |
+|---|---|---|
+| Static letters (24) | done. LandmarkMLP 0.960 val, live-tested well; RF 0.907, CNN 0.897, TransferNet 0.398. Letters test split still untouched | `checkpoints/mlp_pugeault_best.pt`, README |
+| J/Z v1 | superseded. It learned handshape, not motion (first-frame probe = 1.000) | NOTES "J/Z motion v1 diagnosis" |
+| J/Z v2 | code complete and synthetic-tested (capture, features, model, gate, diagnostics); **no data yet** | HUMAN_TODO §1–2 |
+| Words (GISLR) | code complete and synthetic-tested (preprocess, features, models, ablation, eval, live words mode, `--video`, replay parity); **dataset download blocked (403)** | HUMAN_TODO §3 |
+
+Branch `feature/motion-v2-and-words` holds all of this. It is **not pushed**
+(HUMAN_TODO §4–5: the history contains a leaked Kaggle token).
+`python -m pytest` runs the whole suite with no webcam and no dataset.
+
+---
+
 ## 1. Who and why
 
 Ben, junior CS major, taking Machine Learning, AI, App Development, and
@@ -79,6 +100,9 @@ asl-recognition/
 ├── checkpoints/               # gitignored
 └── results/                   # history JSONs, figures
 ```
+
+(The tree above is from the setup phase. README.md's "Project structure" is
+current, including the motion v2 and words files.)
 
 ### Import bootstrapping — read this before editing any script
 
@@ -252,116 +276,47 @@ at the end, in `evaluate.py`.
 
 ---
 
-## 8. What's still stubbed
+## 8. Open work
 
-**`src/evaluate.py`** — all four functions raise `NotImplementedError`:
-- `collect_predictions(model, loader, device)` → `(y_true, y_pred, y_prob)`
-- `confusion_matrix(y_true, y_pred, num_classes)` → 24×24 int array
-- `per_class_metrics(cm)` → precision / recall / F1 per class
-- `analyse_confusable_groups(cm)` → fraction of error inside
-  `config.KNOWN_CONFUSABLE_GROUPS`
-- `plot_confusion_matrix(cm, classes, out_path)` → matplotlib figure
+Nothing is stubbed any more. What's left needs either data or a person:
 
-**`src/models/baselines.py`** — `TransferNet` (pretrained ResNet + new head) and
-`LandmarkMLP` (63-dim input) are both stubs.
+- **J/Z v2:** record 5 sessions, train, run the diagnosis, tune live, test once
+  (HUMAN_TODO §1–2, including what a "good" diagnosis looks like).
+- **Words:** accept the Kaggle rules, download, preprocess, then about 10 training
+  runs: GRU baseline, transformer, the 4-way ablation, a little tuning on val.
+  Test once, then run the ~20-sign personal video set (HUMAN_TODO §3).
+- **Letters test split:** never used. Decide which letters checkpoint is final,
+  then `src/evaluate.py` on test, once.
 
-**`src/data/landmarks.py`** — `extract_dataset_landmarks()` is a stub.
+## 9. How the word system fits together
 
-**`src/data/dataset.py`** — `build_dataloaders(kind="landmark")` raises
-`NotImplementedError`.
-
----
-
-## 9. Next steps, in priority order
-
-### Step 1 — `evaluate.py` (do this first)
-
-87.9% is a number; the confusion matrix is a *finding*. The key question is
-whether errors cluster inside `config.KNOWN_CONFUSABLE_GROUPS`:
-
-```python
-KNOWN_CONFUSABLE_GROUPS = [
-    ["M", "N", "S", "T"],   # fist variants, thumb position only
-    ["A", "S", "T"],        # closed-fist family
-    ["U", "V", "R"],        # two extended fingers, spread/cross
-    ["D", "F"],             # index vs ring contact with thumb
-    ["K", "P"],             # same handshape, different orientation
-    ["G", "H", "Q"],        # pointing variants
-]
+```
+Kaggle asl-signs.zip ──preprocess_gislr.py──> data/processed/gislr/{<pid>.npy,<pid>.csv,index.csv,split.csv}
+      (84 selected landmarks per frame, float16, NaN = not detected; participant-disjoint split)
+                                   │
+                    word_dataset.WordDataset
+                                   │  holistic_features.sequence_to_features  ← the ONE feature function
+                                   ▼
+             train_words.py ──> checkpoints/words_<model>_<features>[_tag]_best.pt
+             (records classes, feature_set, feature_version, landmark hash, max_len, split)
+                                   │
+      evaluate_words.py (val; test once)     ablation_words.py (4 feature sets)
+                                   │
+demo.py words mode / eval_word_videos.py:
+   Holistic(un-flipped frame) → frame_from_holistic → words_live.WordRecogniser
+   → resample to 30 fps → sequence_to_features → model → top-3
 ```
 
-If, say, 60% of errors fall inside these groups, the model fails the way a human
-ASL learner fails — which is a much stronger claim than any accuracy figure.
+Checkpoint loading refuses a checkpoint whose landmark selection, feature version
+or channel count no longer matches the code. So if you change the features, bump
+`FEATURE_VERSION` and retrain.
 
-Run on **validation** while iterating. Touch the test set exactly once, at the
-very end.
+## 10. Rules this project runs on
 
-### Step 2 — the two baselines
-
-The three-model comparison is the spine of the report:
-1. `ASLNet` — scratch CNN (done, 0.879)
-2. `TransferNet` — pretrained ResNet18, new head. Ask the professor whether a
-   pretrained backbone is permitted; drop this if not.
-3. `LandmarkMLP` — 63 normalized MediaPipe keypoints → small MLP.
-
-**Expected interesting result:** the landmark MLP may *beat* the CNN on unseen
-signers, because landmarks discard background, lighting, and skin tone by
-construction. If so, that's a concrete result about feature engineering vs
-end-to-end learning at small data scale — the best sentence in the report.
-
-Caveat: MediaPipe detection fails on ~30% of these pre-cropped images, so the
-landmark path may only work on a subset. That failure rate is itself a finding
-and should be reported alongside.
-
-Also worth 20 minutes: `sklearn.ensemble.RandomForestClassifier` on the same
-landmark vectors, as a non-neural floor.
-
-### Step 3 — ablations
-
-At ~10 s/epoch, full 40-epoch runs cost 8 minutes. Run several, one variable at
-a time, same seed:
-- 3 blocks vs 4 blocks
-- rotation on vs off
-- dropout 0.3 / 0.5 / 0.7
-- image size 128 vs 224
-- batch 64 vs 128 **with** a scaled learning rate (the earlier comparison
-  confounded batch size with effective LR)
-
-Record every run in `NOTES.md` with its tag, so the table can be reconstructed.
-
-### Step 4 — the domain gap (optional, high value)
-
-Options, roughly increasing in effort:
-- Test the resolution-degradation hypothesis in the demo (§6.5)
-- Heavier augmentation (blur, noise, stronger color jitter) to force invariance
-- Fine-tune the Pugeault model on a small set of Ben's own captures
-- Train on landmarks instead of pixels — landmarks should transfer across
-  sensors far better than raw images, which would be a strong demonstration of
-  the same point
-
-### Step 5 — the report
-
-Structure it around the findings, not the accuracy:
-- Scope statement: this is **glossing**, not translation. ASL is a distinct
-  language with grammar carried partly by non-manual markers (eyebrows, head
-  tilt, mouth morphemes) that a hands-only model cannot observe. J and Z are
-  excluded because they require motion.
-- Leakage quantified (~15 points)
-- Detector-vs-letterbox preprocessing finding (30.1% biased loss)
-- Three-model comparison
-- Confusion analysis vs known-confusable groups
-- Cross-signer (0.879) vs cross-domain (fails) distinction
-- Limitations, stated plainly: the author does not sign; validation is one
-  signer; the dataset is 2011-era Kinect captures of five people.
-
----
-
-## 10. Suggested immediate action
-
-Ask Ben whether he wants to write `collect_predictions` and `confusion_matrix`
-himself with guidance (recommended — the professor constraint, and it's ~15 lines
-of genuinely instructive code), or have them written and explained afterwards.
-
-He has consistently preferred to write the model-relevant code with feedback,
-and to have infrastructure handed to him. `evaluate.py` sits closer to the model
-side of that line.
+- Every split is signer/participant-disjoint. A random split is only ever run
+  to measure leakage.
+- Each test split is used exactly once, for the final model of that phase.
+  Motion v2 and words enforce this with marker files in `results/`.
+- Train/serve parity: the live path imports the same feature function as training,
+  and replay tests prove the outputs match.
+- Findings (including negative ones like the v1 shortcut) go in NOTES.md with a date.

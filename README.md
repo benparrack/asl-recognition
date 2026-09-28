@@ -1,7 +1,42 @@
 # ASL Fingerspelling Recognition
 
-A computer vision system that classifies static ASL fingerspelling handshapes
-from webcam input.
+A computer vision system for ASL from webcam input, in three parts:
+
+| Part | Status |
+|---|---|
+| **Static letters** (24, no J/Z): landmark MLP, CNN, transfer, random forest | trained, evaluated, live-tested |
+| **Motion letters J/Z** (v2: trajectory features plus a NONE class) | code complete and tested on synthetic clips; needs recordings (HUMAN_TODO.md §1–2) |
+| **Isolated words** (GISLR / Kaggle `asl-signs`, 250 signs, Holistic landmarks) | code complete and tested on a synthetic GISLR-format set; real data download blocked (HUMAN_TODO.md §3) |
+
+## Running it
+
+```bash
+source ../.venv/bin/activate
+
+# letters (the working demo)
+python src/demo.py --checkpoint checkpoints/mlp_pugeault_best.pt
+
+# letters + J/Z, once a v2 motion model exists
+python src/demo.py --checkpoint checkpoints/mlp_pugeault_best.pt \
+    --motion-checkpoint checkpoints/motion_v2_best.pt
+
+# letters + words ('w' switches mode, 't' starts/stops a sign), once a word model exists
+python src/demo.py --checkpoint checkpoints/mlp_pugeault_best.pt \
+    --words-checkpoint checkpoints/words_transformer_full_best.pt
+
+# any of the above on a video file instead of the webcam, optionally headless
+python src/demo.py ... --video clip.mp4 [--no-display]
+
+python -m pytest              # all tests; no webcam or dataset needed
+```
+
+Word pipeline: `src/data/preprocess_gislr.py` (Kaggle zip → per-participant
+landmark cache) → `src/train_words.py` → `src/ablation_words.py` (which features
+matter: one hand vs both, location, face/velocity) → `src/evaluate_words.py`
+(test once) → `src/eval_word_videos.py` (your own recorded signs through the
+live path). Motion pipeline: `src/data/capture_motion_v2.py` →
+`src/train_motion_v2.py` → `src/diagnose_motion.py`. HUMAN_TODO.md has exact
+commands for both.
 
 ## Project structure
 
@@ -14,7 +49,13 @@ asl-recognition/
 │   │   ├── dataset.py      # loading + SIGNER-DISJOINT splitting (read the docstring)
 │   │   ├── landmarks.py    # MediaPipe keypoint extraction and normalisation
 │   │   ├── capture_data.py     # webcam capture, one class at a time
-│   │   └── capture_alphabet.py # webcam capture, loops through all 24 letters
+│   │   ├── capture_alphabet.py # webcam capture, loops through all 24 letters
+│   │   ├── capture_motion_v2.py, motion_features.py, motion_dataset_v2.py  # J/Z v2
+│   │   ├── holistic_landmarks.py # which 84 of Holistic's 543 points words use
+│   │   ├── holistic_features.py  # word features: ONE implementation, train + live
+│   │   ├── preprocess_gislr.py   # GISLR parquets -> landmark cache + participant split
+│   │   ├── word_dataset.py       # cache -> model tensors, per-sign properties
+│   │   └── synthetic_gislr.py    # GISLR-format synthetic data for tests
 │   ├── models/
 │   │   ├── cnn.py                   # MODEL 1 — your own CNN, the centrepiece
 │   │   ├── baselines.py             # MODEL 2 transfer learning, MODEL 3 landmark MLP
@@ -22,7 +63,13 @@ asl-recognition/
 │   ├── train.py             # training loop
 │   ├── evaluate.py          # confusion matrix, per-class metrics, error analysis
 │   ├── analyze_confusions.py # which SPECIFIC pairs drive each model's errors
-│   └── demo.py               # live webcam, both pixel and landmark models
+│   ├── motion_gate.py        # J/Z gate (shared by demo and replay tests)
+│   ├── train_motion_v2.py, diagnose_motion.py
+│   ├── models/words.py       # word BiGRU baseline and conv+transformer
+│   ├── train_words.py, evaluate_words.py, ablation_words.py
+│   ├── words_live.py         # live word segmentation + classification (replay-tested)
+│   ├── eval_word_videos.py, bench_words_fps.py
+│   └── demo.py               # live webcam or --video: letters, J/Z, words
 ├── data/raw/               # untouched downloads (gitignored)
 ├── data/processed/         # crops, landmarks, metadata.csv (gitignored)
 ├── checkpoints/            # saved weights (gitignored)
@@ -96,6 +143,10 @@ python -c "import torch; print(torch.cuda.is_available())"   # expect True
 - **Sign Language MNIST** — 28×28 grayscale, no J/Z. Sanity checks only.
 - **WLASL** — real video, many signers. The serious option, and the one that makes
   a signer-disjoint split possible.
+- **GISLR (Kaggle `asl-signs`)** — ~94k isolated signs, 250 words, 21 participants,
+  already as MediaPipe Holistic landmarks. The words model uses it with a
+  participant-disjoint split. Needs the competition rules accepted on Kaggle before
+  the download works.
 - **My own recordings** - To test at first I made 720 images of my hand spread across
 - 3 different shapes (FIST, PALM, and PEACE) so that I could train a model for the
 - first time and get my bearings for how it worked, and also have a working demo.

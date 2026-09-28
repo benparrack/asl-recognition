@@ -258,3 +258,73 @@ pairs actually drive the errors.
 - Report-worthy in the same way as the split-leakage finding: a 0.967 number
   from an honest session-disjoint split can still be the wrong kind of right.
   The split was fine; the *features* leaked the answer through a shortcut.
+
+## J/Z motion v2 built, awaiting recordings (2026-09-28)
+- Built and tested on synthetic clips only: `capture_motion_v2.py` (saves raw
+  image-space landmarks and timestamps, adds a NONE class with hold_I / hold_D /
+  between-letters prompts), `motion_features.py` v2 (trajectory relative to each
+  point's own start, velocity, rotation, plus handshape), `MotionGRUv2`,
+  `train_motion_v2.py`, the shared `motion_gate.py`, and `diagnose_motion.py`
+  (first-frame / mean-frame / trajectory-only probes, time-shuffle and
+  neutralisation ablations, hold_I→J and hold_D→Z false-positive rates).
+- What the synthetic tests show: a model with the handshape channels zeroed
+  still learns J/Z/NONE from trajectory alone (>0.8 on held-out clips, same
+  handshape for every class). On synthetic clips, the diagnostic's
+  trajectory_only probe is >0.8 and neutralising motion lowers accuracy.
+  Shuffling frames changes the trajectory channels.
+- No real v2 numbers yet; that needs Ben's 5 recording sessions (HUMAN_TODO §1–2).
+
+## Word recognition (GISLR) status (2026-09-28): pipeline complete, real data blocked
+- **Kaggle `asl-signs` downloads return 403** (listing works, so auth is fine; the
+  competition rules haven't been accepted on this account). Retried at the start and
+  end of the run. The competition's schema is therefore **documented, not yet
+  verified**: `preprocess_gislr.py --verify-only` checks it (train.csv columns, sign
+  map coverage, parquet columns, 543 landmarks/frame, NaN for undetected parts) and
+  writes `results/gislr_schema.json` when the data exists.
+- **No real word model, val number, ablation or test result exists yet.** Every
+  word number below comes from `src/data/synthetic_gislr.py`, a generated dataset
+  in the competition's exact file format whose "signs" are combinations of shape ×
+  body location × movement × one/two hands. Those numbers show the code works, not
+  that it recognises ASL.
+
+### Feature design (`src/data/holistic_features.py`, one implementation for train and live)
+- 84 of Holistic's 543 landmarks: both hands, 9 upper-body pose points, and 33 face
+  points (nose, chin, forehead, eyes, brows, lips). The lists are named constants,
+  and their hash is stored in every word checkpoint and checked on load.
+- Handedness canonicalisation: the dominant hand (clearly more frames, else more
+  wrist travel) is mirrored into one slot. A left-handed signer, a right-handed
+  signer, and a selfie-mirrored recording give the same features (tested).
+- Body-relative location, with x normalised by shoulder width and y by neck height
+  **separately**, so a 4:3 webcam and a 9:16 phone agree (GISLR has no frame sizes).
+- 153 channels as nested prefixes, so the ablation is four slices of one computation:
+  `dom_shape` 64 (what the letters MLP sees) ⊂ `both_shape` 128 ⊂ `location` 139 ⊂
+  `full` 153 (face distances, velocities).
+
+### Synthetic code checks (NOT results)
+- Transformer / full, 20 synthetic signs × 10 participants (6/2/2 split), 15 epochs:
+  val 0.996, top-5 1.000. GRU / full, 8 epochs: val 0.908.
+- The ablation runner on the same data (12 epochs each):
+
+  | features | val top-1 | one-handed | two-handed |
+  |---|---|---|---|
+  | dom_shape | 0.237 | 0.204 | 0.265 |
+  | both_shape | 0.492 | 0.481 | 0.500 |
+  | location | 0.971 | 0.944 | 0.992 |
+  | full | 0.988 | 0.981 | 0.992 |
+
+  This only confirms each feature slice carries what the generator put in it: the
+  synthetic signs differ by location and movement by construction, so `location`
+  wins. It says **nothing** about the real one-hand vs two-hand question, which
+  needs the real ablation (HUMAN_TODO §3d).
+- Headless replay parity: GISLR-format val sequences streamed frame by frame as
+  Holistic results objects through `words_live.WordRecogniser` (the demo's path)
+  give the same probabilities as `evaluate_words` offline (|Δ| < 1e-5), and auto
+  segmentation captures every hand frame of a sign padded with rest frames.
+
+### Throughput (`src/bench_words_fps.py`, `results/words_fps.json`)
+- Holistic on Ben's own 640×480 webcam captures (person and hand in frame):
+  complexity 0 → 30 FPS, **1 → 24 FPS (default)**, 2 → 11 FPS. The word model
+  adds ~2–3 ms per sign on the GPU, once per clip. Blank frames give a
+  misleading ~55 FPS because the hand and face stages never run.
+- Tested only offline: segmentation thresholds, the acceptance confidence, and real
+  camera behaviour. See HUMAN_TODO §3f.

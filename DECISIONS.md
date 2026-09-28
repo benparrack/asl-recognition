@@ -71,3 +71,55 @@ reasoning in a line or two. Newest at the bottom.
 - **Live word clips are resampled to 30 fps (nearest frame) before featurising**, because
   velocity channels are per-frame differences. GISLR's frame rate isn't in the data; 30
   is an assumption to check against the `frame` column spacing once the data is here.
+- **Word models: a small conv+transformer as the main model, a BiGRU as the baseline.**
+  Depthwise temporal convs followed by a 2-layer transformer is a scaled-down version of
+  what did well on this competition. The BiGRU is the same family as the J/Z model, so the
+  comparison has a simple reference point. Both pool with a masked mean, and padding is
+  provably inert (`test_padding_does_not_change_output`). Defaults: width 192, 40 epochs,
+  AdamW lr 1e-3 / wd 0.05, one-epoch warm-up then cosine, label smoothing 0.1, AMP. These
+  are standard choices, untuned, because no real data was available to tune on.
+- **Input standardisation for word models lives inside the model** (buffers, from ≤3000
+  train sequences), for the same reason as motion v2.
+- **The ablation is four separate runs with an `ablation` tag**: same model, seed, split and
+  epochs; only the leading feature channels differ. `full` is retrained under the tag
+  rather than reusing the main run, so all four have an identical budget.
+  `ablation_words.py --aggregate-only` rebuilds the table from the eval JSONs.
+- **One- vs two-handed and static vs dynamic are per-sign properties measured from TRAIN
+  sequences** (non-dominant hand in >50 % of frames; dominant-wrist speed terciles), not
+  labels anyone curated. They're descriptive only, never used for training or selection.
+  Terciles give three equal-sized sign groups, whatever the absolute speeds are.
+- **The word test split is guarded by `results/words_test_used.json`**, as for motion v2.
+- **Words mode lives in `demo.py`, not a separate `demo_words.py`.** PROMPT §E1 wants a key
+  that switches letters ↔ words in one session, which needs one loop. To keep `demo.py`
+  readable, the live word logic is in `src/words_live.py` (replay-testable, like
+  `motion_gate.py`), and the old letters loop body moved verbatim into `letters_step()`.
+  The only change to letters behaviour: the J/Z gate receives the frame timestamp `ts`
+  instead of calling `time.time()` itself. For the webcam `ts` is `time.time()`, so
+  behaviour is identical; for `--video` it's the file's own clock.
+- **Auto segmentation defaults** (`SegParams`): start after 2 raised-hand frames, with 4
+  frames of pre-roll; end on 6 frames of hands down, or a lull below 0.4
+  shoulder-widths/s for 12 frames once ≥15 frames are in, or a 120-frame cap; fewer
+  than 5 hand frames → discarded. These are reasoned guesses at 30 fps, not measured,
+  so they're exposed as `--words-lull-speed` and the manual `t` toggle is always
+  available. After a lull ending, auto-start disarms until the hands drop or move
+  again; otherwise a held last handshape retriggers every half-second.
+- **Accepted words go straight into the sentence** (no SPACE confirm), since a sign
+  already had an explicit start and end. Acceptance needs top-1 ≥ 0.35, a guess for
+  250 classes that should be checked live. Below that the top-3 is shown but nothing
+  is appended.
+- **No frame-skip option.** Holistic measured 24 FPS at `model_complexity=1` on Ben's
+  own 640×480 captures (30 FPS at 0, 11 at 2), above PROMPT §E3's ~15 FPS bar. Frame
+  skipping would also thin the clip that velocity features are computed from.
+  `--holistic-complexity` is exposed anyway because it's free. Blank frames report
+  ~55 FPS, which is misleading: with nobody in frame the hand and face stages don't run.
+- **The replay parity test streams from the preprocessed cache**, scattered back into
+  Holistic's raw layout (unselected points get dummy values, as a real detection has all
+  of them). That makes the offline side exactly `evaluate_words.collect` on the same
+  arrays, so probabilities must match to 1e-5. Adapter parity from raw parquets is
+  already covered in `test_holistic_features.py`.
+- **`--video` uses the file's timestamps (CAP_PROP_POS_MSEC)**, not the wall clock, so a
+  recorded sign has its true timing even though Holistic runs slower or faster than
+  real time. At end of file an open clip is flushed and classified (`end_of_input`).
+- **Added `src/eval_word_videos.py`** for the ~20-sign personal test. It scores each file
+  both as one whole clip (model only) and with auto segmentation (model + segmenter),
+  so a poor live number can be attributed to one or the other.
