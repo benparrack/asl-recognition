@@ -183,7 +183,9 @@ class GateStatus:
 
     @property
     def skip_static(self) -> bool:
-        return self.recording or self.in_hold
+        # Not while recording: every move between letters triggers the gate, and
+        # pausing static there made each letter change wait for a NONE verdict.
+        return self.in_hold
 
 
 @dataclass

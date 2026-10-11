@@ -328,3 +328,66 @@ pairs actually drive the errors.
   misleading ~55 FPS because the hand and face stages never run.
 - Tested only offline: segmentation thresholds, the acceptance confidence, and real
   camera behaviour. See HUMAN_TODO §3f.
+
+## GISLR real data: the second hand is almost never present (2026-10-11)
+
+Preprocessed all 21 participants (94,477 sequences, 3.58M frames, 1.7 GB cache;
+the 37 GB zip was deleted afterwards). Per participant, one hand is detected in
+60–80 % of frames and the other in ~0–3 %. Left or right depending on the
+signer, i.e. the dominant hand. Across all sequences only **0.5 % of frames
+have both hands**, including clearly two-handed signs (BOOK, SHOE, CAR, BATH:
+median non-dominant presence 0). The raw-parquet sample in
+`results/gislr_schema.json` agrees (left_hand 100 % NaN), and the preprocessor
+places rows by (type, landmark_index), so this is the dataset, not our code.
+
+Consequences:
+- `results/words_sign_properties.csv` marks all 250 signs one-handed, so the
+  `two_handed` breakdown in every `*_val_eval.json` is empty. It's meaningless
+  on this data.
+- The ablation's `both_shape` step can't show a two-hand gain: there's almost
+  no second hand to learn from. `location` and `full` are still informative.
+- Live, Holistic on a webcam will often see both hands, which the model has
+  almost never seen in training. If two-handed signs score badly live, try
+  blanking the non-dominant hand at inference to match the training data.
+
+GRU baseline (`--model gru --features full`, 40 epochs): best val **0.600**
+top-1 / 0.826 top-5 (epoch 35), on 13,756 val sequences from 3 unseen
+participants.
+
+## J/Z motion v2 trained (2026-10-11)
+
+5 sessions × 20 J / 20 Z / 20 NONE (sessions 2–5 at 1.5 s clips, 0.3 s
+countdown; session 1 at 2.0 s). Split by session: train m1, m2, m4 / val m3 /
+test m5 (test not yet used). `train_motion_v2.py --epochs 80`: val **1.000**
+(epoch 76), 0/4 hold_I→J and 0/4 hold_D→Z false positives.
+
+Diagnosis on val (`results/motion_v2_diagnosis_val.json`): time-shuffled 1.000,
+handshape neutralised 0.950, motion neutralised 0.983. Neither cue alone is
+needed, so the model uses handshape and motion **redundantly**. That's not the
+v1 failure (v1 had no motion at all; here the trajectory-only probe gets
+0.93), but it can't be called motion-driven. Probes: first_frame 0.946,
+mean_frame 0.988. Gate-cut clips start mid-movement, so even frame one
+differs from a still hold. Val has only 4 clips per NONE sub-type, so the
+false-positive rates are coarse. The live gate is the real test, since only
+moving segments ever reach the classifier.
+
+## Word feature ablation (2026-10-11, transformer, 30 epochs, val)
+
+| features | channels | val top-1 | val top-5 | one-handed | two-handed | static | moderate | dynamic |
+|---|---|---|---|---|---|---|---|---|
+| dom_shape | 64 | 0.556 | 0.792 | 0.556 (n=13756) | n/a | 0.519 (n=4512) | 0.567 (n=4583) | 0.582 (n=4661) |
+| both_shape | 128 | 0.564 | 0.794 | 0.564 (n=13756) | n/a | 0.535 (n=4512) | 0.565 (n=4583) | 0.590 (n=4661) |
+| location | 139 | 0.614 | 0.823 | 0.614 (n=13756) | n/a | 0.590 (n=4512) | 0.613 (n=4583) | 0.638 (n=4661) |
+| full | 153 | 0.639 | 0.843 | 0.639 (n=13756) | n/a | 0.611 (n=4512) | 0.644 (n=4583) | 0.661 (n=4661) |
+
+Location is the biggest single gain (+5.0). The second hand adds +0.8,
+which is expected given it's ~absent from GISLR (section above). Face and
+velocity add +2.5. Full transformer at 40 epochs: 0.642 val
+(`checkpoints/words_transformer_full_best.pt`), the current best word model.
+Test split not used yet.
+
+Demo latency fix: the static letter classifier used to pause whenever the J/Z
+gate was recording, and every move between letters triggers it, so each letter
+change waited for a NONE verdict. Static now pauses only during the post-accept
+hold (`GateStatus.skip_static`), and the smoother is cleared on an accepted J/Z.
+Ben confirmed live that it's much faster.

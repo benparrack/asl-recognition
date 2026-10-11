@@ -6,7 +6,7 @@ units to hold out -- ben_m1, ben_m2, ...):
     python src/data/capture_motion_v2.py --signer ben_m1 --session desk_day1
 
 Controls:
-    SPACE   start the countdown, then record one clip (default 2.0 s)
+    SPACE   start the countdown, then record one clip (default 1.5 s)
     r       delete the most recent clip for the current label, redo it
     n       skip to the next label (keeps what was captured)
     q       quit early (keeps what was captured)
@@ -232,7 +232,7 @@ def main() -> None:
     parser.add_argument("--labels", nargs="+", default=config.MOTION_V2_CLASSES)
     parser.add_argument("--clips", type=int, default=20, help="clips per label")
     parser.add_argument("--duration", type=float, default=config.MOTION_V2_CLIP_SECONDS)
-    parser.add_argument("--countdown", type=float, default=1.5)
+    parser.add_argument("--countdown", type=float, default=0.3)
     parser.add_argument("--camera", type=int, default=0)
     parser.add_argument("--seed", type=int, default=None,
                         help="seed for NONE prompts (default: time-based)")

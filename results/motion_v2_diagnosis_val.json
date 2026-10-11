@@ -1,0 +1,107 @@
+{
+  "n_clips": {
+    "train": 180,
+    "val": 60,
+    "test": 60
+  },
+  "probes": {
+    "first_frame": {
+      "mean": 0.9458333333333333,
+      "folds": {
+        "ben_m1": 0.9666666666666667,
+        "ben_m2": 0.9,
+        "ben_m3": 0.95,
+        "ben_m4": 0.9666666666666667
+      }
+    },
+    "mean_frame": {
+      "mean": 0.9875,
+      "folds": {
+        "ben_m1": 1.0,
+        "ben_m2": 0.9833333333333333,
+        "ben_m3": 0.9833333333333333,
+        "ben_m4": 0.9833333333333333
+      }
+    },
+    "trajectory_only": {
+      "mean": 0.9291666666666667,
+      "folds": {
+        "ben_m1": 0.9333333333333333,
+        "ben_m2": 0.85,
+        "ben_m3": 0.9666666666666667,
+        "ben_m4": 0.9666666666666667
+      }
+    },
+    "time_shuffled": {
+      "mean": 0.9916666666666667,
+      "folds": {
+        "ben_m1": 1.0,
+        "ben_m2": 0.9833333333333333,
+        "ben_m3": 0.9833333333333333,
+        "ben_m4": 1.0
+      }
+    }
+  },
+  "chance": 0.3333333333333333,
+  "checkpoint": {
+    "path": "checkpoints/motion_v2_best.pt",
+    "epoch": 76,
+    "split": "val",
+    "signers": [
+      "ben_m3"
+    ],
+    "ablations": {
+      "normal": 1.0,
+      "time_shuffled": 1.0,
+      "handshape_neutralised": 0.95,
+      "motion_neutralised": 0.9833333333333333
+    },
+    "false_positive_rates": {
+      "hold_I->J": [
+        0.0,
+        4
+      ],
+      "hold_D->Z": [
+        0.0,
+        4
+      ]
+    },
+    "confusion_by_subtype": {
+      "J": {
+        "J": 20,
+        "Z": 0,
+        "NONE": 0
+      },
+      "NONE:between_letters": {
+        "J": 0,
+        "Z": 0,
+        "NONE": 4
+      },
+      "NONE:hold_D": {
+        "J": 0,
+        "Z": 0,
+        "NONE": 4
+      },
+      "NONE:hold_I": {
+        "J": 0,
+        "Z": 0,
+        "NONE": 4
+      },
+      "NONE:hold_static": {
+        "J": 0,
+        "Z": 0,
+        "NONE": 4
+      },
+      "NONE:wave_reposition": {
+        "J": 0,
+        "Z": 0,
+        "NONE": 4
+      },
+      "Z": {
+        "J": 0,
+        "Z": 20,
+        "NONE": 0
+      }
+    }
+  }
+}

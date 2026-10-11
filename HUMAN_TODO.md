@@ -25,8 +25,8 @@ python src/data/capture_motion_v2.py --signer ben_m4 --session s4_far_from_cam
 python src/data/capture_motion_v2.py --signer ben_m5 --session s5_other_room
 ```
 
-Each session defaults to 20 clips each of J, Z and NONE, at 2.0 s per clip
-(about 10 minutes). Controls: SPACE records (1.5 s countdown first), r redoes the
+Each session defaults to 20 clips each of J, Z and NONE, at 1.5 s per clip
+(about 10 minutes). Controls: SPACE records (0.3 s countdown first), r redoes the
 last clip, n moves to the next label, q quits (anything already captured is kept).
 
 - **J and Z:** start the clip with the hand still, trace the letter once, then
@@ -172,6 +172,18 @@ with hands down):
 
 ```
 data/word_videos/<sign>/<anything>.mp4      e.g. data/word_videos/apple/ben_1.mp4
+```
+
+**Update 2026-10-11:** the 20 signs are chosen (10 two-handed, 10 one-handed,
+`DEFAULT_SIGNS` in `src/data/capture_words.py`), and these clips will also be
+used to fine-tune the GISLR model, because GISLR has almost no second hand
+(NOTES.md). Record 3 sessions of 5 clips per sign with the capture tool, a new
+`--session` each sitting:
+
+```bash
+python src/data/capture_words.py --session w1_desk_day
+python src/data/capture_words.py --session w2_evening
+python src/data/capture_words.py --session w3_other_room
 ```
 
 Then score them through exactly the live path, and watch a few in the demo:

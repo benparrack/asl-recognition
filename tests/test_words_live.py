@@ -155,3 +155,26 @@ def test_personal_video_scorer_matches_offline(live):
     expected = clf.classes[int(offline[0].argmax())]
     assert r["auto_n_events"] == 1
     assert hit(r["whole_clip"], expected, 1) and hit(r["auto"], expected, 1)
+
+
+def test_capture_words_clip_round_trip(tmp_path):
+    """capture_words writes clips eval_word_videos can read: right frame count,
+    the measured fps, numbered per session; default signs are real classes."""
+    import cv2
+    import pandas as pd
+    import config
+    from data.capture_words import DEFAULT_SIGNS, next_index, write_clip
+
+    frames = [np.full((48, 64, 3), i * 10, np.uint8) for i in range(12)]
+    d = tmp_path / "hello"
+    write_clip(d / "w1_00.mp4", frames, fps=24.0)
+    cap = cv2.VideoCapture(str(d / "w1_00.mp4"))
+    assert int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) == 12
+    assert cap.get(cv2.CAP_PROP_FPS) == pytest.approx(24.0, abs=0.5)
+    cap.release()
+    assert next_index(d, "w1") == 1 and next_index(d, "w2") == 0
+
+    props = config.RESULTS_DIR / "words_sign_properties.csv"
+    if props.exists():
+        assert set(DEFAULT_SIGNS) <= set(pd.read_csv(props)["sign"])
+    assert len(set(DEFAULT_SIGNS)) == 20

@@ -72,7 +72,7 @@ MOTION_V2_IDX_TO_CLASS = {i: c for c, i in MOTION_V2_CLASS_TO_IDX.items()}
 # hold_D -> Z are the two that matter most, since those are exactly the
 # handshape-only shortcuts v1 fell for.
 MOTION_NONE_SUBTYPES = ["hold_I", "hold_D", "hold_static", "between_letters", "wave_reposition"]
-MOTION_V2_CLIP_SECONDS = 2.0     # v1 used 1.0 s, too tight for a full J
+MOTION_V2_CLIP_SECONDS = 1.5     # v1 used 1.0 s, too tight for a full J; 2.0 felt slow
 
 INCLUDE_MOTION_LETTERS = False   # flip to True only once you feed sequences
 CLASSES = STATIC_LETTERS + (MOTION_LETTERS if INCLUDE_MOTION_LETTERS else [])

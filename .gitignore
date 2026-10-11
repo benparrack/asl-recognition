@@ -2,6 +2,8 @@
 data/raw/
 data/processed/
 data/motion/
+data/motion_v2/
+data/word_videos/
 checkpoints/
 *.pt
 *.pth

@@ -72,7 +72,10 @@ def test_gate_triggers_ends_and_classifies(v2_gate, letter, shape):
     assert ev["outcome"] == "accepted" and ev["label"] == letter
     # Ended after the stroke (starts at 1.0 s, lasts 1.2 s), well before the stream ends.
     assert 1.8 < t_event < 2.8
-    # Static classification is paused while recording and for hold_seconds after.
+    # Static keeps running while recording (letter changes stay fast) and is
+    # paused only for hold_seconds after an accepted J/Z.
+    assert any(s.recording for s in statuses)
+    assert not any(s.skip_static for s in statuses if s.recording)
     i_evt = [i for i, (_, t, _) in enumerate(frames) if t == t_event][0]
     assert statuses[i_evt].in_hold
     first_after_hold = next(i for i, (_, t, _) in enumerate(frames)

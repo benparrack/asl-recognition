@@ -1,0 +1,282 @@
+{
+  "split": "val",
+  "n": 13756,
+  "participants": [
+    34503,
+    37055,
+    62590
+  ],
+  "acc": 0.6416836289619076,
+  "top5": 0.8335271881360861,
+  "mean_confidence_correct": 0.838441014289856,
+  "mean_confidence_wrong": 0.5287684798240662,
+  "worst_classes": [
+    {
+      "class": "there",
+      "precision": 0.03225806451612903,
+      "recall": 0.017241379310344827,
+      "f1": 0.02247191011235955,
+      "support": 58
+    },
+    {
+      "class": "go",
+      "precision": 0.2777777777777778,
+      "recall": 0.08771929824561403,
+      "f1": 0.13333333333333333,
+      "support": 57
+    },
+    {
+      "class": "kitty",
+      "precision": 0.3,
+      "recall": 0.16363636363636364,
+      "f1": 0.21176470588235294,
+      "support": 55
+    },
+    {
+      "class": "underwear",
+      "precision": 0.7272727272727273,
+      "recall": 0.14545454545454545,
+      "f1": 0.2424242424242424,
+      "support": 55
+    },
+    {
+      "class": "beside",
+      "precision": 0.27586206896551724,
+      "recall": 0.23529411764705882,
+      "f1": 0.253968253968254,
+      "support": 34
+    },
+    {
+      "class": "wake",
+      "precision": 0.3333333333333333,
+      "recall": 0.25,
+      "f1": 0.28571428571428575,
+      "support": 56
+    },
+    {
+      "class": "pen",
+      "precision": 0.42424242424242425,
+      "recall": 0.2413793103448276,
+      "f1": 0.3076923076923077,
+      "support": 58
+    },
+    {
+      "class": "tooth",
+      "precision": 0.3148148148148148,
+      "recall": 0.30357142857142855,
+      "f1": 0.3090909090909091,
+      "support": 56
+    },
+    {
+      "class": "look",
+      "precision": 0.45161290322580644,
+      "recall": 0.23728813559322035,
+      "f1": 0.3111111111111111,
+      "support": 59
+    },
+    {
+      "class": "child",
+      "precision": 0.3793103448275862,
+      "recall": 0.2682926829268293,
+      "f1": 0.3142857142857143,
+      "support": 41
+    },
+    {
+      "class": "cereal",
+      "precision": 0.42424242424242425,
+      "recall": 0.27450980392156865,
+      "f1": 0.33333333333333337,
+      "support": 51
+    },
+    {
+      "class": "room",
+      "precision": 0.33962264150943394,
+      "recall": 0.3333333333333333,
+      "f1": 0.3364485981308411,
+      "support": 54
+    },
+    {
+      "class": "say",
+      "precision": 0.40540540540540543,
+      "recall": 0.29411764705882354,
+      "f1": 0.34090909090909094,
+      "support": 51
+    },
+    {
+      "class": "into",
+      "precision": 0.45454545454545453,
+      "recall": 0.2830188679245283,
+      "f1": 0.3488372093023256,
+      "support": 53
+    },
+    {
+      "class": "ride",
+      "precision": 0.40476190476190477,
+      "recall": 0.3090909090909091,
+      "f1": 0.3505154639175258,
+      "support": 55
+    }
+  ],
+  "most_confused": [
+    {
+      "true": "wake",
+      "pred": "awake",
+      "count": 29,
+      "frac_of_true": 0.5178571428571429
+    },
+    {
+      "true": "lips",
+      "pred": "mouth",
+      "count": 26,
+      "frac_of_true": 0.4406779661016949
+    },
+    {
+      "true": "goose",
+      "pred": "duck",
+      "count": 24,
+      "frac_of_true": 0.39344262295081966
+    },
+    {
+      "true": "kitty",
+      "pred": "cat",
+      "count": 22,
+      "frac_of_true": 0.4
+    },
+    {
+      "true": "dryer",
+      "pred": "dry",
+      "count": 21,
+      "frac_of_true": 0.3684210526315789
+    },
+    {
+      "true": "duck",
+      "pred": "goose",
+      "count": 20,
+      "frac_of_true": 0.3125
+    },
+    {
+      "true": "jump",
+      "pred": "stairs",
+      "count": 17,
+      "frac_of_true": 0.30357142857142855
+    },
+    {
+      "true": "pen",
+      "pred": "pencil",
+      "count": 16,
+      "frac_of_true": 0.27586206896551724
+    },
+    {
+      "true": "man",
+      "pred": "dad",
+      "count": 16,
+      "frac_of_true": 0.27586206896551724
+    },
+    {
+      "true": "awake",
+      "pred": "wake",
+      "count": 16,
+      "frac_of_true": 0.2807017543859649
+    },
+    {
+      "true": "look",
+      "pred": "face",
+      "count": 16,
+      "frac_of_true": 0.2711864406779661
+    },
+    {
+      "true": "brother",
+      "pred": "boy",
+      "count": 15,
+      "frac_of_true": 0.26785714285714285
+    },
+    {
+      "true": "underwear",
+      "pred": "cute",
+      "count": 14,
+      "frac_of_true": 0.2545454545454545
+    },
+    {
+      "true": "say",
+      "pred": "mouth",
+      "count": 14,
+      "frac_of_true": 0.27450980392156865
+    },
+    {
+      "true": "stay",
+      "pred": "same",
+      "count": 14,
+      "frac_of_true": 0.2413793103448276
+    },
+    {
+      "true": "glasswindow",
+      "pred": "tooth",
+      "count": 14,
+      "frac_of_true": 0.23728813559322035
+    },
+    {
+      "true": "there",
+      "pred": "hesheit",
+      "count": 13,
+      "frac_of_true": 0.22413793103448276
+    },
+    {
+      "true": "stay",
+      "pred": "that",
+      "count": 13,
+      "frac_of_true": 0.22413793103448276
+    },
+    {
+      "true": "look",
+      "pred": "jump",
+      "count": 13,
+      "frac_of_true": 0.22033898305084745
+    },
+    {
+      "true": "sleepy",
+      "pred": "sleep",
+      "count": 13,
+      "frac_of_true": 0.22807017543859648
+    }
+  ],
+  "default_guess_sinks": [
+    {
+      "sign": "cow",
+      "predicted": 116,
+      "support": 57,
+      "absorbed_from": 60
+    }
+  ],
+  "breakdowns": {
+    "two_handed": {
+      "False": {
+        "acc": 0.6416836289619076,
+        "n": 13756,
+        "n_signs": 250
+      }
+    },
+    "motion_bucket": {
+      "moderate": {
+        "acc": 0.6423739908356971,
+        "n": 4583,
+        "n_signs": 83
+      },
+      "static": {
+        "acc": 0.6207890070921985,
+        "n": 4512,
+        "n_signs": 84
+      },
+      "dynamic": {
+        "acc": 0.661231495387256,
+        "n": 4661,
+        "n_signs": 83
+      }
+    }
+  },
+  "confusion_figure": "/home/ben/school/ml-project/asl-recognition/results/words_transformer_full_val_confusion.png",
+  "run": "words_transformer_full",
+  "epoch": 30,
+  "model": "transformer",
+  "features": "full",
+  "n_channels": 153
+}

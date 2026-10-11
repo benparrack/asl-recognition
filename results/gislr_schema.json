@@ -1,0 +1,104 @@
+{
+  "train_csv_columns": [
+    "path",
+    "participant_id",
+    "sequence_id",
+    "sign"
+  ],
+  "n_sequences": 94477,
+  "n_participants": 21,
+  "n_signs": 250,
+  "per_participant": {
+    "count": 21.0,
+    "mean": 4498.9,
+    "std": 502.9,
+    "min": 3338.0,
+    "25%": 4545.0,
+    "50%": 4677.0,
+    "75%": 4826.0,
+    "max": 4968.0
+  },
+  "per_sign": {
+    "count": 250.0,
+    "mean": 377.9,
+    "std": 19.4,
+    "min": 299.0,
+    "25%": 369.0,
+    "50%": 381.5,
+    "75%": 391.0,
+    "max": 415.0
+  },
+  "sample_parquet": {
+    "columns": [
+      "frame",
+      "row_id",
+      "type",
+      "landmark_index",
+      "x",
+      "y",
+      "z"
+    ],
+    "dtypes": {
+      "frame": "int16",
+      "row_id": "str",
+      "type": "str",
+      "landmark_index": "int16",
+      "x": "float64",
+      "y": "float64",
+      "z": "float64"
+    },
+    "rows_per_frame_by_type": {
+      "face": 468.0,
+      "left_hand": 21.0,
+      "pose": 33.0,
+      "right_hand": 21.0
+    },
+    "nan_fraction_by_type": {
+      "face": 0.0,
+      "left_hand": 1.0,
+      "pose": 0.0,
+      "right_hand": 0.5217391304347826
+    }
+  },
+  "frames": {
+    "count": 94477.0,
+    "mean": 37.9,
+    "std": 44.2,
+    "min": 2.0,
+    "25%": 12.0,
+    "50%": 22.0,
+    "75%": 44.0,
+    "max": 537.0
+  },
+  "left_hand_frac_mean": 0.27779108339645137,
+  "right_hand_frac_mean": 0.38180756718191017,
+  "split_participants": {
+    "test": [
+      30680,
+      37779,
+      49445
+    ],
+    "train": [
+      2044,
+      4718,
+      16069,
+      18796,
+      22343,
+      25571,
+      26734,
+      27610,
+      28656,
+      29302,
+      32319,
+      36257,
+      53618,
+      55372,
+      61333
+    ],
+    "val": [
+      34503,
+      37055,
+      62590
+    ]
+  }
+}

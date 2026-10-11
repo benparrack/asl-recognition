@@ -1,0 +1,138 @@
+[
+  {
+    "run": "words_transformer_dom_shape_ablation",
+    "features": "dom_shape",
+    "n_channels": 64,
+    "acc": 0.5562663564989823,
+    "top5": 0.7923815062518174,
+    "breakdowns": {
+      "two_handed": {
+        "False": {
+          "acc": 0.5562663564989823,
+          "n": 13756,
+          "n_signs": 250
+        }
+      },
+      "motion_bucket": {
+        "moderate": {
+          "acc": 0.5666593934104298,
+          "n": 4583,
+          "n_signs": 83
+        },
+        "static": {
+          "acc": 0.5188386524822695,
+          "n": 4512,
+          "n_signs": 84
+        },
+        "dynamic": {
+          "acc": 0.5822784810126582,
+          "n": 4661,
+          "n_signs": 83
+        }
+      }
+    },
+    "epoch": 29
+  },
+  {
+    "run": "words_transformer_both_shape_ablation",
+    "features": "both_shape",
+    "n_channels": 128,
+    "acc": 0.5636813027042745,
+    "top5": 0.7939808083745274,
+    "breakdowns": {
+      "two_handed": {
+        "False": {
+          "acc": 0.5636813027042745,
+          "n": 13756,
+          "n_signs": 250
+        }
+      },
+      "motion_bucket": {
+        "moderate": {
+          "acc": 0.5653502072878027,
+          "n": 4583,
+          "n_signs": 83
+        },
+        "static": {
+          "acc": 0.5350177304964538,
+          "n": 4512,
+          "n_signs": 84
+        },
+        "dynamic": {
+          "acc": 0.5897875992276336,
+          "n": 4661,
+          "n_signs": 83
+        }
+      }
+    },
+    "epoch": 26
+  },
+  {
+    "run": "words_transformer_location_ablation",
+    "features": "location",
+    "n_channels": 139,
+    "acc": 0.61398662401861,
+    "top5": 0.822768246583309,
+    "breakdowns": {
+      "two_handed": {
+        "False": {
+          "acc": 0.61398662401861,
+          "n": 13756,
+          "n_signs": 250
+        }
+      },
+      "motion_bucket": {
+        "moderate": {
+          "acc": 0.6131355007636919,
+          "n": 4583,
+          "n_signs": 83
+        },
+        "static": {
+          "acc": 0.5895390070921985,
+          "n": 4512,
+          "n_signs": 84
+        },
+        "dynamic": {
+          "acc": 0.6384895945076164,
+          "n": 4661,
+          "n_signs": 83
+        }
+      }
+    },
+    "epoch": 28
+  },
+  {
+    "run": "words_transformer_full_ablation",
+    "features": "full",
+    "n_channels": 153,
+    "acc": 0.638921198022681,
+    "top5": 0.8431956964233789,
+    "breakdowns": {
+      "two_handed": {
+        "False": {
+          "acc": 0.638921198022681,
+          "n": 13756,
+          "n_signs": 250
+        }
+      },
+      "motion_bucket": {
+        "moderate": {
+          "acc": 0.6439013746454287,
+          "n": 4583,
+          "n_signs": 83
+        },
+        "static": {
+          "acc": 0.6110372340425532,
+          "n": 4512,
+          "n_signs": 84
+        },
+        "dynamic": {
+          "acc": 0.6610169491525424,
+          "n": 4661,
+          "n_signs": 83
+        }
+      }
+    },
+    "epoch": 16
+  }
+]

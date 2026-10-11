@@ -251,6 +251,7 @@ def letters_step(frame, kind, model, detector, transform, smoother, motion_gate,
             ev = gate_status.event
             if ev and ev["outcome"] == "accepted":
                 letter, confidence = ev["label"], ev["confidence"]
+                smoother.buffer.clear()        # drop the I/D votes from the trace itself
 
         skip_static = gate_status is not None and gate_status.skip_static
 
