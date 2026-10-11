@@ -223,13 +223,17 @@ losing accuracy. Things that were only testable live:
 
 Nothing was pushed. The branch's history (inherited from `main`) still contains
 the Kaggle API token that was once committed in `NOTES.md`, so pushing it
-anywhere public republishes that token. See item 5 first.
+anywhere public republishes that token, but it has been revoked (item 5), so
+pushing is safe.
 
 ```bash
 git log --oneline main..feature/motion-v2-and-words   # what this run added
 ```
 
-## 5. Security: confirm the leaked Kaggle token was rotated
+## 5. ~~Security: confirm the leaked Kaggle token was rotated~~ DONE 2026-10-12
+
+Closed: a new token is in `~/.kaggle/access_token` and Ben revoked the old one on
+Kaggle on 2026-10-12. The original instructions follow for reference.
 
 A Kaggle API token was committed to `NOTES.md` in this repo's history. It has
 never been confirmed as rotated. On kaggle.com → Settings → API, expire the old
