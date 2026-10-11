@@ -92,3 +92,40 @@ def test_ablation_aggregates_existing_runs(synthetic_words):
     rows = json.loads((out / "words_ablation.json").read_text())
     assert [r["features"] for r in rows] == ["full"]
     assert "| full | 153 |" in (out / "words_ablation.md").read_text()
+
+
+def test_finetune_cli_holds_out_a_session(synthetic_words, tmp_path):
+    """finetune_words.py on fake personal clips (landmark caches standing in for
+    decoded videos): the holdout session is never trained on, and the output
+    checkpoint loads like any other word checkpoint."""
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    import numpy as np
+    from data.preprocess_gislr import load_sequence
+    from data.word_dataset import load_word_index
+    from evaluate_words import load_word_checkpoint
+
+    cache, _, ckpt_path = synthetic_words
+    index, classes = load_word_index(cache)
+    clips = tmp_path / "word_videos"
+    for sess, pid in zip(["s1", "s2"], index["participant_id"].unique()):
+        for i, (_, row) in enumerate(index[index["participant_id"] == pid].head(8).iterrows()):
+            path = clips / row["sign"] / f"{sess}_{i:02d}.mp4"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.touch()                                   # cache is newer, so never decoded
+            np.save(path.with_suffix(".npy"), load_sequence(cache, row))
+    res = subprocess.run([sys.executable, str(Path(__file__).parents[1] / "src/finetune_words.py"),
+                          "--checkpoint", str(ckpt_path), "--dir", str(clips),
+                          "--cache-dir", str(cache), "--out-dir", str(tmp_path / "out"),
+                          "--epochs", "2", "--repeat", "2", "--replay", "16",
+                          "--workers", "0", "--no-amp"], capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr
+    run = ckpt_path.stem.removesuffix("_best") + "_ft"
+    report = json.loads((tmp_path / "out" / f"{run}.json").read_text())
+    assert report["holdout"] == "s2" and report["train_sessions"] == ["s1"]
+    assert report["after"]["holdout"]["n"] == 8
+    _, ckpt = load_word_checkpoint(tmp_path / "out" / f"{run}.pt", "cpu")
+    assert ckpt["classes"] == classes and ckpt["finetune"]["holdout"] == "s2"

@@ -186,7 +186,16 @@ python src/data/capture_words.py --session w2_evening
 python src/data/capture_words.py --session w3_other_room
 ```
 
-Then score them through exactly the live path, and watch a few in the demo:
+Then fine-tune. The first run extracts landmarks (slow, cached after that) and
+reports holdout-session accuracy before and after, plus GISLR val to show
+forgetting. Once the numbers look right, retrain on all sessions for the demo:
+
+```bash
+python src/finetune_words.py --checkpoint checkpoints/words_transformer_full_best.pt
+python src/finetune_words.py --checkpoint checkpoints/words_transformer_full_best.pt --holdout none
+```
+
+Score them through exactly the live path, and watch a few in the demo:
 
 ```bash
 python src/eval_word_videos.py --checkpoint checkpoints/words_transformer_full_best.pt
