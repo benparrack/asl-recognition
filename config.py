@@ -35,6 +35,8 @@ GISLR_RAW_DIR = DATA_DIR / "external" / "gislr"
 GISLR_CACHE_DIR = PROCESSED_DIR / "gislr"
 GISLR_INDEX_CSV = GISLR_CACHE_DIR / "index.csv"
 GISLR_SPLIT_CSV = GISLR_CACHE_DIR / "split.csv"
+ASL_CITIZEN_ZIP = DATA_DIR / "external" / "asl_citizen" / "ASL_Citizen.zip"
+ASL_CITIZEN_CACHE_DIR = PROCESSED_DIR / "asl_citizen"
 
 for _d in (RAW_DIR, PROCESSED_DIR, CHECKPOINT_DIR, RESULTS_DIR, MOTION_DIR, MOTION_V2_DIR):
     _d.mkdir(parents=True, exist_ok=True)
