@@ -391,3 +391,40 @@ gate was recording, and every move between letters triggers it, so each letter
 change waited for a NONE verdict. Static now pauses only during the post-accept
 hold (`GateStatus.skip_static`), and the smoother is cleared on an accepted J/Z.
 Ben confirmed live that it's much faster.
+
+## ASL Citizen fixes two-handed signs (2026-10-12)
+
+ASL Citizen (Microsoft, 83k webcam videos, 2,731 glosses, 52 signers,
+non-commercial research licence) mapped onto GISLR's vocabulary: 216 of the 250
+signs, 8,188 videos (`preprocess_asl_citizen.py`, numbered variants merged,
+8 aliases like dad→FATHER). Official signer-disjoint split, restricted to these
+signs: train 35 signers / 3,925 videos, val 5 / 1,000, test 11 / 3,263
+(only ~18 train videos per sign). 38 % of videos have both hands in >20 % of
+frames vs 0.9 % in GISLR. Checked: no signer or video file in two splits, no
+val landmark sequence identical to a train one.
+
+Extraction caveat: this laptop throttles at ~104 °C (Holistic ~3 fps/process),
+so after the first 774 videos the rest were extracted with `--max-fps 15`
+(every other frame of 30 fps clips, then resampled to 30 fps as before). On a
+test clip that halved the time with the same timestamps/resampled length.
+
+All runs: transformer, full features, 40 epochs, GISLR's 250-way head; each
+dataset keeps its own split; checkpoint selected on the mean of the two val
+accuracies. "Ben's clips" = 100 webcam clips (20 signs × 5, one session,
+`data/word_videos`), never trained on, scored whole-clip through the live path.
+
+| run | GISLR val | ASLC val | ASLC one-handed | ASLC two-handed | Ben top-1 | Ben top-3 |
+|---|---|---|---|---|---|---|
+| GISLR only (`words_transformer_full`) | 0.642 | 0.548 | 0.767 | **0.245** | 0.37 | 0.59 |
+| both (`aslc_r1`) | 0.650 | 0.900 | 0.914 | 0.881 | 0.67 | 0.76 |
+| both, ASLC ×3 (`aslc_r3`) | 0.645 | **0.932** | **0.945** | 0.914 | **0.76** | **0.83** |
+| ASLC only (`aslc_only`) | 0.337 | 0.916 | 0.905 | 0.931 | 0.60 | 0.76 |
+
+(ASLC one/two-handed: 134 / 82 signs, from `results/words_sign_properties_asl_citizen.csv`.)
+
+Two-handed accuracy on unseen signers goes 0.25 → 0.91, GISLR doesn't suffer,
+and Ben's own clips double (0.37 → 0.76). The ranking on Ben's clips matches
+ASLC val, so ASLC val is a usable proxy for live; ASLC-only does worse on
+Ben's clips than its val suggests, so keep GISLR in the mix. ASLC val (0.93)
+is optimistic for live: one uniform webcam setup, 216 classes. Test splits of
+both datasets are still unused.

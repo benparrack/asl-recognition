@@ -28,3 +28,4 @@ results/*.png
 # Background-job logs and large external datasets
 logs/
 data/external/
+data/aslc_demo/
