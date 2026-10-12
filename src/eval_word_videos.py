@@ -27,6 +27,7 @@ test result. Writes results/words_personal_eval.json.
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import sys
 from pathlib import Path
@@ -45,11 +46,15 @@ from words_live import SegParams, WordClassifier, WordRecogniser  # noqa: E402
 VIDEO_EXTS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
 
 
-def video_landmarks(path, holistic):
-    """(frames (T, 84, 3), timestamps (T,), (w, h)) for one file."""
+def video_landmarks(path, holistic, max_fps=None):
+    """(frames (T, 84, 3), timestamps (T,), (w, h)) for one file. max_fps skips
+    frames (keeps every k-th) so Holistic runs at most that rate."""
     cap = cv2.VideoCapture(str(path))
+    step = max(1, round(cap.get(cv2.CAP_PROP_FPS) / max_fps)) if max_fps else 1
     frames, times, wh = [], [], (1, 1)
-    while True:
+    for i in itertools.count():
+        if i % step and cap.grab():
+            continue
         ok, frame = cap.read()
         if not ok:
             break

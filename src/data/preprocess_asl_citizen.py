@@ -22,7 +22,9 @@ Writes config.ASL_CITIZEN_CACHE_DIR:
     index.csv              sequence_id, participant_id, sign, label, gloss,
                            shard, offset, n_frames, left_frac, right_frac
     split.csv              the dataset's own signer-disjoint split (35/6/11)
-Extraction runs at ~10 frames/s per process, so all 83k videos take ~13 h.
+Extraction runs at ~10 frames/s per process on a cool machine (~3 when this
+laptop throttles), so all 83k videos take 13+ h. --max-fps 15 halves that: the
+frames are resampled to 30 fps anyway, and some clips are 15 fps already.
 --vocab gislr (the default) keeps only glosses that are GISLR signs (~216 signs,
 ~8k videos, ~1.5 h) and names them as GISLR does, so the two datasets share
 sign names; --vocab all keeps every gloss lower-cased. `label` is the sign's
@@ -89,7 +91,7 @@ def read_splits(zf: zipfile.ZipFile, gislr_signs=None) -> pd.DataFrame:
 
 
 def process_shard(zip_path: str, shard: str, rows: pd.DataFrame, cache_dir: str,
-                  complexity: int) -> pd.DataFrame:
+                  complexity: int, max_fps: float | None = None) -> pd.DataFrame:
     import mediapipe as mp
     from eval_word_videos import video_landmarks
 
@@ -101,7 +103,7 @@ def process_shard(zip_path: str, shard: str, rows: pd.DataFrame, cache_dir: str,
             path = Path(tmp) / "clip.mp4"
             path.write_bytes(zf.read(PREFIX + "videos/" + r.video))
             h.reset()                                  # tracking must not carry across clips
-            frames, times, _ = video_landmarks(path, h)
+            frames, times, _ = video_landmarks(path, h, max_fps)
             if len(frames) < 2:
                 print(f"[aslc] skip unreadable {r.video}", flush=True)
                 continue
@@ -140,6 +142,8 @@ def main() -> None:
     parser.add_argument("--holistic-complexity", type=int, default=1, choices=[0, 1, 2])
     parser.add_argument("--vocab", choices=["gislr", "all"], default="gislr")
     parser.add_argument("--gislr-index", type=Path, default=config.GISLR_INDEX_CSV)
+    parser.add_argument("--max-fps", type=float, default=None,
+                        help="run Holistic at most this rate (15 halves the work on 30 fps clips)")
     parser.add_argument("--limit", type=int, default=None, help="only build this many shards")
     args = parser.parse_args()
 
@@ -156,7 +160,7 @@ def main() -> None:
     t0 = time.time()
     with ProcessPoolExecutor(max_workers=max(1, min(args.workers, len(todo) or 1))) as pool:
         futs = {pool.submit(process_shard, str(args.zip), s, shards[s], str(args.cache_dir),
-                            args.holistic_complexity): s for s in todo}
+                            args.holistic_complexity, args.max_fps): s for s in todo}
         for i, fut in enumerate(as_completed(futs), 1):
             out = fut.result()
             el = time.time() - t0
