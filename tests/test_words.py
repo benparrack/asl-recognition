@@ -129,3 +129,47 @@ def test_finetune_cli_holds_out_a_session(synthetic_words, tmp_path):
     assert report["after"]["holdout"]["n"] == 8
     _, ckpt = load_word_checkpoint(tmp_path / "out" / f"{run}.pt", "cpu")
     assert ckpt["classes"] == classes and ckpt["finetune"]["holdout"] == "s2"
+
+
+def test_combined_index_and_training_with_extra_cache(synthetic_words, tmp_path):
+    """A second cache (a copy of the synthetic one, with its labels in a
+    different order) merges by sign NAME into GISLR's label space, and
+    train_words/evaluate_words run on it with per-dataset validation."""
+    import shutil
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from data.preprocess_gislr import load_sequence
+    from data.word_dataset import EXTRA_PID_OFFSET, load_combined_index
+    import pandas as pd
+
+    cache, _, ckpt_path = synthetic_words
+    extra = tmp_path / "extra_ds"
+    shutil.copytree(cache, extra)
+    idx = pd.read_csv(extra / "index.csv")
+    n = idx["label"].max()
+    idx["label"] = n - idx["label"]                       # same signs, reversed labels
+    idx.to_csv(extra / "index.csv", index=False)
+
+    combined, classes = load_combined_index(cache, extra)
+    gislr, _ = load_word_index(cache)
+    ex = combined[combined["dataset"] == "extra_ds"]
+    assert len(ex) == len(gislr) and (ex["label"].to_numpy() == gislr["label"].to_numpy()).all()
+    assert ex["participant_id"].min() >= EXTRA_PID_OFFSET
+    row = ex.iloc[3]
+    assert np.allclose(load_sequence("/nonexistent", row), load_sequence(cache, gislr.iloc[3]),
+                       equal_nan=True)
+
+    out = tmp_path / "out"
+    root = Path(__file__).parents[1]
+    subprocess.run([sys.executable, str(root / "src/train_words.py"), "--cache-dir", str(cache),
+                    "--extra-cache-dir", str(extra), "--extra-repeat", "2", "--out-dir", str(out),
+                    "--epochs", "2", "--workers", "0", "--dim", "32", "--no-amp", "--tag", "x"],
+                   check=True, capture_output=True)
+    report = json.loads((out / "words_transformer_full_x_val_eval.json").read_text())
+    assert set(report["other_datasets"]) == {"extra_ds"}
+    assert report["other_datasets"]["extra_ds"]["n"] == report["n"]
+    ck = torch.load(out / "words_transformer_full_x_best.pt", weights_only=False)
+    assert set(ck["val_acc_by_dataset"]) == {"gislr", "extra_ds"}
+    assert ck["val_acc"] == pytest.approx(np.mean(list(ck["val_acc_by_dataset"].values())))

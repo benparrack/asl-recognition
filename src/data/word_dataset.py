@@ -47,6 +47,33 @@ def load_word_index(cache_dir: Path = config.GISLR_CACHE_DIR) -> tuple[pd.DataFr
     return index, classes
 
 
+EXTRA_PID_OFFSET = 100_000   # keeps extra-dataset participant ids apart from GISLR's
+
+
+def load_combined_index(cache_dir: Path, extra_cache_dir: Path) -> tuple[pd.DataFrame, list[str]]:
+    """
+    GISLR plus a second cache (preprocess_asl_citizen.py --vocab gislr) in
+    GISLR's label space. Extra rows keep their own signer split, take the
+    GISLR label of their sign name, and get participant_id + EXTRA_PID_OFFSET.
+    `shard` becomes an absolute path, so WordDataset/load_sequence read either
+    cache whatever cache_dir they're given. `dataset` says which one a row is.
+    """
+    index, classes = load_word_index(cache_dir)
+    extra, _ = load_word_index(extra_cache_dir)
+    unknown = set(extra["sign"]) - set(classes)
+    if unknown:
+        raise ValueError(f"{extra_cache_dir}: signs not in GISLR: {sorted(unknown)[:10]}")
+    index = index.assign(dataset="gislr", shard=[str(Path(cache_dir).resolve() / s)
+                                                for s in index["shard"]])
+    extra = extra.assign(dataset=Path(extra_cache_dir).name,
+                         label=extra["sign"].map({s: i for i, s in enumerate(classes)}),
+                         participant_id=extra["participant_id"] + EXTRA_PID_OFFSET,
+                         shard=[str(Path(extra_cache_dir).resolve() / s) for s in extra["shard"]])
+    if set(extra["participant_id"]) & set(index["participant_id"]):
+        raise ValueError("participant ids collide between the two caches")
+    return pd.concat([index, extra[index.columns]], ignore_index=True), classes
+
+
 class WordDataset(Dataset):
     """
     (features (max_len, n_channels) float32, mask (max_len,) bool, label).
@@ -133,7 +160,7 @@ def sign_properties(index: pd.DataFrame, classes: list[str],
 def load_or_compute_sign_properties(index, classes, cache_dir, out_path: Path) -> pd.DataFrame:
     if out_path.exists():
         props = pd.read_csv(out_path)
-        if len(props) == len(classes):
+        if len(props) == index.loc[index["split"] == "train", "label"].nunique():
             return props
     props = sign_properties(index, classes, cache_dir)
     props.to_csv(out_path, index=False)

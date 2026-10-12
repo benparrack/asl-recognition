@@ -4,6 +4,8 @@ Evaluate a word checkpoint. Validation during development, test ONCE at the end.
 Run:
     python src/evaluate_words.py --checkpoint checkpoints/words_transformer_full_best.pt
     python src/evaluate_words.py --checkpoint ... --split test     # once, final model only
+    python src/evaluate_words.py --checkpoint ... --extra-cache-dir data/processed/asl_citizen \
+        --dataset asl_citizen                                      # score the other dataset
 
 Reports, beyond top-1:
   - top-5 accuracy
@@ -16,7 +18,8 @@ Reports, beyond top-1:
     (data/word_dataset.sign_properties, computed from TRAIN sequences)
   - a row-normalised confusion-matrix figure
 
---split test is refused once results/words_test_used.json exists.
+--split test is refused once results/words_test_used.json exists
+(words_test_used_<dataset>.json for a dataset other than GISLR).
 """
 
 from __future__ import annotations
@@ -38,7 +41,7 @@ import config  # noqa: E402
 from data import holistic_features as hf  # noqa: E402
 from data import holistic_landmarks as hl  # noqa: E402
 from data.word_dataset import (  # noqa: E402
-    WordDataset, load_or_compute_sign_properties, load_word_index,
+    WordDataset, load_combined_index, load_or_compute_sign_properties, load_word_index,
 )
 from evaluate import confusion_matrix, per_class_metrics, plot_confusion_matrix  # noqa: E402
 from models.words import build_word_model  # noqa: E402
@@ -151,32 +154,44 @@ def main():
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--split", choices=["val", "test"], default="val")
     parser.add_argument("--cache-dir", type=Path, default=config.GISLR_CACHE_DIR)
+    parser.add_argument("--extra-cache-dir", type=Path, default=None)
+    parser.add_argument("--dataset", default="gislr",
+                        help="with --extra-cache-dir: 'gislr' or the extra cache's folder name")
     parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args()
 
-    if args.split == "test" and TEST_MARKER.exists():
+    suffix = "" if args.dataset == "gislr" else f"_{args.dataset}"
+    marker = TEST_MARKER.with_name(f"{TEST_MARKER.stem}{suffix}.json")
+    if args.split == "test" and marker.exists():
         sys.exit(f"Refusing: the word test split was already used "
-                 f"({TEST_MARKER.read_text().strip()}). Report that result.")
+                 f"({marker.read_text().strip()}). Report that result.")
 
     device = config.DEVICE
     model, ckpt = load_word_checkpoint(args.checkpoint, device)
-    index, classes = load_word_index(args.cache_dir)
+    if args.extra_cache_dir:
+        index, classes = load_combined_index(args.cache_dir, args.extra_cache_dir)
+        index = index[index["dataset"] == args.dataset]
+        if index.empty:
+            sys.exit(f"no rows for dataset {args.dataset!r}")
+    else:
+        index, classes = load_word_index(args.cache_dir)
     if classes != ckpt["classes"]:
         raise RuntimeError("class list in the cache differs from the checkpoint's")
-    props = load_or_compute_sign_properties(index, classes, args.cache_dir,
-                                            config.RESULTS_DIR / "words_sign_properties.csv")
+    props = load_or_compute_sign_properties(
+        index, classes, args.cache_dir, config.RESULTS_DIR / f"words_sign_properties{suffix}.csv")
     stem = Path(args.checkpoint).stem.replace("_best", "")
     report = evaluate_split(model, ckpt, index, args.split, args.cache_dir, device, props,
                             workers=args.workers,
-                            fig_path=config.RESULTS_DIR / f"{stem}_{args.split}_confusion.png")
-    out = config.RESULTS_DIR / f"{stem}_{args.split}_eval.json"
+                            fig_path=config.RESULTS_DIR / f"{stem}_{args.split}{suffix}_confusion.png")
+    report["dataset"] = args.dataset
+    out = config.RESULTS_DIR / f"{stem}_{args.split}{suffix}_eval.json"
     out.write_text(json.dumps(report, indent=2))
     print(f"{args.split}: acc {report['acc']:.4f}  top5 {report['top5']:.4f}  (n={report['n']})")
     print(f"breakdowns: {json.dumps(report['breakdowns'], indent=1)}")
     print(f"sinks: {report['default_guess_sinks'][:5]}")
     print(f"[done] -> {out}")
     if args.split == "test":
-        TEST_MARKER.write_text(json.dumps({"checkpoint": args.checkpoint, "result": str(out),
+        marker.write_text(json.dumps({"checkpoint": args.checkpoint, "result": str(out),
                                            "acc": report["acc"], "top5": report["top5"]}) + "\n")
 
 

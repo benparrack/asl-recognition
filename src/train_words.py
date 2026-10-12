@@ -4,6 +4,13 @@ Train an isolated-sign (word) model on the GISLR cache.
 Run:
     python src/train_words.py --model transformer --features full
     python src/train_words.py --model gru --features full --tag baseline
+    python src/train_words.py --extra-cache-dir data/processed/asl_citizen --tag aslc
+
+--extra-cache-dir adds a second landmark cache (ASL Citizen, mapped onto
+GISLR's signs; word_dataset.load_combined_index). Each dataset keeps its own
+signer split. Validation is reported per dataset and the checkpoint is
+selected on their MEAN, so the much larger GISLR val set can't drown out the
+dataset that actually has the second hand.
 
 Follows train.py / train_motion_v2.py: best-on-val checkpoint in checkpoints/,
 per-epoch history JSON in results/, and the test split is not touched (that's
@@ -35,6 +42,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -46,7 +54,7 @@ import config  # noqa: E402
 from data import holistic_features as hf  # noqa: E402
 from data import holistic_landmarks as hl  # noqa: E402
 from data.word_dataset import (  # noqa: E402
-    WordDataset, load_or_compute_sign_properties, load_word_index,
+    WordDataset, load_combined_index, load_or_compute_sign_properties, load_word_index,
 )
 from evaluate_words import evaluate_split, load_word_checkpoint  # noqa: E402
 from models.words import build_word_model  # noqa: E402
@@ -104,6 +112,11 @@ def main():
     parser.add_argument("--no-amp", action="store_true")
     parser.add_argument("--tag", default="")
     parser.add_argument("--cache-dir", type=Path, default=config.GISLR_CACHE_DIR)
+    parser.add_argument("--extra-cache-dir", type=Path, default=None)
+    parser.add_argument("--extra-repeat", type=int, default=1,
+                        help="repeat the extra dataset's train rows this many times per epoch")
+    parser.add_argument("--train-on", choices=["both", "gislr", "extra"], default="both",
+                        help="with --extra-cache-dir: which train split(s) to use (val is always both)")
     parser.add_argument("--out-dir", type=Path, default=None,
                         help="write checkpoint and results here instead of checkpoints/ "
                              "and results/ (smoke tests)")
@@ -119,21 +132,34 @@ def main():
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     res_dir.mkdir(parents=True, exist_ok=True)
 
-    index, classes = load_word_index(args.cache_dir)
-    tr_idx, va_idx = index[index["split"] == "train"], index[index["split"] == "val"]
+    if args.extra_cache_dir:
+        index, classes = load_combined_index(args.cache_dir, args.extra_cache_dir)
+    else:
+        index, classes = load_word_index(args.cache_dir)
+        index = index.assign(dataset="gislr")
+    tr_idx = index[index["split"] == "train"]
+    if args.train_on != "both":
+        tr_idx = tr_idx[(tr_idx["dataset"] == "gislr") == (args.train_on == "gislr")]
+    extra_tr = tr_idx[tr_idx["dataset"] != "gislr"]
+    tr_idx = pd.concat([tr_idx] + [extra_tr] * (args.extra_repeat - 1), ignore_index=True)
+    va_idx = index[index["split"] == "val"]
+    val_sets = {name: g for name, g in va_idx.groupby("dataset", sort=False)}
     split_participants = {s: sorted(int(p) for p in g["participant_id"].unique())
                           for s, g in index.groupby("split")}
     print(f"[init] device {device}, amp {amp}")
+    print(f"[words] train rows by dataset {tr_idx['dataset'].value_counts().to_dict()}; "
+          f"val {({k: len(v) for k, v in val_sets.items()})}")
     print(f"[words] {len(classes)} signs; train {len(tr_idx)}  val {len(va_idx)} sequences; "
           f"participants {({k: len(v) for k, v in split_participants.items()})}")
 
     train_ds = WordDataset(tr_idx, args.cache_dir, args.features, args.max_len, augment=True)
-    val_ds = WordDataset(va_idx, args.cache_dir, args.features, args.max_len, augment=False)
     loader_kw = dict(num_workers=args.workers, pin_memory=device.type == "cuda",
                      persistent_workers=args.workers > 0)
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
                               drop_last=len(train_ds) > args.batch_size, **loader_kw)
-    val_loader = DataLoader(val_ds, batch_size=256, shuffle=False, **loader_kw)
+    val_loaders = {name: DataLoader(WordDataset(g, args.cache_dir, args.features, args.max_len),
+                                    batch_size=256, shuffle=False, **loader_kw)
+                   for name, g in val_sets.items()}
 
     model = build_word_model(args.model, train_ds.n_channels, len(classes), args.max_len,
                              **model_kwargs(args))
@@ -158,17 +184,22 @@ def main():
     for epoch in range(1, args.epochs + 1):
         t0 = time.time()
         tr = run_epoch(model, train_loader, criterion, device, optimizer, scheduler, scaler, amp)
-        va = run_epoch(model, val_loader, criterion, device, amp=amp)
+        by_ds = {name: run_epoch(model, vl, criterion, device, amp=amp)
+                 for name, vl in val_loaders.items()}
+        va = tuple(float(np.mean([r[i] for r in by_ds.values()])) for i in range(3))
         history.append(dict(epoch=epoch, train_loss=tr[0], train_acc=tr[1], val_loss=va[0],
-                            val_acc=va[1], val_top5=va[2], lr=scheduler.get_last_lr()[0]))
+                            val_acc=va[1], val_top5=va[2], lr=scheduler.get_last_lr()[0],
+                            val_acc_by_dataset={k: r[1] for k, r in by_ds.items()}))
+        per = "  ".join(f"{k} {r[1]:.3f}" for k, r in by_ds.items()) if len(by_ds) > 1 else ""
         print(f"epoch {epoch:>3}/{args.epochs}  train {tr[0]:.3f}/{tr[1]:.3f}  "
-              f"val {va[0]:.3f}/{va[1]:.3f} top5 {va[2]:.3f}  ({time.time() - t0:.0f}s)",
+              f"val {va[0]:.3f}/{va[1]:.3f} top5 {va[2]:.3f}  {per}  ({time.time() - t0:.0f}s)",
               flush=True)
         if (va[1], -va[0]) > (best[0], -best[1]):
             best = (va[1], va[0])
             torch.save({
                 "model_state": model.state_dict(), "epoch": epoch,
                 "val_acc": va[1], "val_top5": va[2], "val_loss": va[0],
+                "val_acc_by_dataset": {k: r[1] for k, r in by_ds.items()},
                 "classes": classes, "model": args.model, "model_kwargs": model_kwargs(args),
                 "feature_version": hf.FEATURE_VERSION, "feature_set": args.features,
                 "n_channels": train_ds.n_channels, "max_len": args.max_len,
@@ -183,16 +214,23 @@ def main():
 
     print(f"\n[done] best val acc {best[0]:.4f} (loss {best[1]:.4f}) -> {ckpt_path}")
     best_model, ckpt = load_word_checkpoint(ckpt_path, device)
-    props = load_or_compute_sign_properties(index, classes, args.cache_dir,
-                                            res_dir / "words_sign_properties.csv")
-    report = evaluate_split(best_model, ckpt, index, "val", args.cache_dir, device, props,
-                            workers=args.workers,
-                            fig_path=res_dir / f"{run}_val_confusion.png")
+    reports = {}
+    for name in val_sets:
+        sub = index[index["dataset"] == name]
+        suffix = "" if name == "gislr" else f"_{name}"
+        props = load_or_compute_sign_properties(sub, classes, args.cache_dir,
+                                                res_dir / f"words_sign_properties{suffix}.csv")
+        reports[name] = evaluate_split(best_model, ckpt, sub, "val", args.cache_dir, device,
+                                       props, workers=args.workers,
+                                       fig_path=res_dir / f"{run}_val{suffix}_confusion.png")
+    report = reports.pop("gislr")
+    report["other_datasets"] = reports
     report.update(run=run, epoch=ckpt["epoch"], model=args.model, features=args.features,
                   n_channels=train_ds.n_channels)
     (res_dir / f"{run}_val_eval.json").write_text(json.dumps(report, indent=2))
-    print(f"[done] val acc {report['acc']:.4f} top5 {report['top5']:.4f}; "
-          f"breakdowns {json.dumps(report['breakdowns'])}")
+    for name, r in [("gislr", report)] + list(reports.items()):
+        print(f"[done] {name} val acc {r['acc']:.4f} top5 {r['top5']:.4f}; "
+              f"breakdowns {json.dumps(r['breakdowns'])}")
     print(f"[done] -> {res_dir / f'{run}_val_eval.json'}")
 
 
