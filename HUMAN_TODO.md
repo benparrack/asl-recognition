@@ -6,6 +6,37 @@ branch `feature/motion-v2-and-words` (see AUTONOMOUS_RUN_REPORT.md).
 
 ---
 
+## 0. Word model trained on GISLR + ASL Citizen: try it live (2026-10-12)
+
+`checkpoints/words_transformer_full_aslc_r3_best.pt` is the current word model
+(NOTES.md, "ASL Citizen fixes two-handed signs"). Recording personal clips is no
+longer needed.
+
+```bash
+python src/demo.py --checkpoint checkpoints/mlp_pugeault_best.pt \
+    --words-checkpoint checkpoints/words_transformer_full_aslc_r3_best.pt --start-in-words
+```
+
+Framing matters for two-handed signs: sit back so head to waist is in frame,
+camera at about face height, sign at chest height (not toward the lens). With
+hands close to the camera, Holistic often detects only one of two touching hands.
+Unseen-signer ASL Citizen clips to try with `--video`: `data/aslc_demo/*.mp4`
+(gitignored, non-commercial licence).
+
+When the model is final, test ONCE per dataset:
+
+```bash
+python src/evaluate_words.py --checkpoint checkpoints/words_transformer_full_aslc_r3_best.pt --split test
+python src/evaluate_words.py --checkpoint checkpoints/words_transformer_full_aslc_r3_best.pt --split test \
+    --extra-cache-dir data/processed/asl_citizen --dataset asl_citizen
+```
+
+More signs later: `python src/data/preprocess_asl_citizen.py --vocab all --max-fps 15
+--cache-dir data/processed/asl_citizen_all` (~2,731 signs, many hours on this
+laptop; run it as a `systemd-run --user` unit). Training on signs outside
+GISLR's 250 needs a new label space, which isn't built yet. The 46 GB zip is
+kept in `data/external/asl_citizen/` for this.
+
 ## 1. Record J / Z / NONE motion v2 data
 
 The v1 J/Z model learned handshape, not motion (NOTES.md, "J/Z motion v1

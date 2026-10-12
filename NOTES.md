@@ -428,3 +428,29 @@ ASLC val, so ASLC val is a usable proxy for live; ASLC-only does worse on
 Ben's clips than its val suggests, so keep GISLR in the mix. ASLC val (0.93)
 is optimistic for live: one uniform webcam setup, 216 classes. Test splits of
 both datasets are still unused.
+
+Tuning sweep on top of `aslc_r3` (val + Ben's clips, whole-clip top-1):
+
+| run | GISLR val | ASLC val | ASLC two-handed | Ben top-1 |
+|---|---|---|---|---|
+| `aslc_r3` (ASLC ×3, 40 ep) | 0.645 | 0.932 | 0.914 | **0.76** |
+| `aslc_r5_e60` (ASLC ×5, 60 ep) | 0.646 | 0.931 | 0.912 | 0.71 |
+| `aslc_r3_d03` (dropout 0.3) | 0.647 | 0.928 | 0.919 | 0.67 |
+| `aslc_r3_w256` (dim 256) | 0.645 | 0.940 | 0.936 | 0.68 |
+
+All within noise on val (1,000 videos, SE ≈ 0.8 pts); none beats `aslc_r3` on
+Ben's clips, so **`checkpoints/words_transformer_full_aslc_r3_best.pt` is the
+word model**. Tuning has plateaued; more gains need data, not settings.
+
+Live check (Ben, webcam): one-handed signs work well, two-handed worse. On his
+clips `aslc_r3` gets two-handed 0.66 vs one-handed 0.86. Cause is mostly hand
+DETECTION, not the classifier: BOOK (0/5) has both hands in 0–5 % of frames
+(ASLC: 28 %) and CLEAN (0/5) in 3–31 %. In those clips Ben's hands are close to
+a low camera, fill the frame and press together, and Holistic finds only one.
+Where both hands are detected (SHOE, WET) it's 5/5 at 97 %+. Holistic
+complexity 2 doesn't help. Remaining misses are near-neighbour signs
+(dance→jump, car→horse, hello→bye). Fix is framing: sit back so head to waist
+is in frame, camera at face height, sign at chest height.
+
+A suspend/resume cycle mid-training left one run hung (GPU idle, no progress);
+long jobs now run as `systemd-run --user` units via resumable scripts in `logs/`.
