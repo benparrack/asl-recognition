@@ -1,0 +1,411 @@
+{
+  "split": "val",
+  "n": 1000,
+  "participants": [
+    100005,
+    100012,
+    100021,
+    100026,
+    100039
+  ],
+  "acc": 0.548,
+  "top5": 0.712,
+  "mean_confidence_correct": 0.8133461475372314,
+  "mean_confidence_wrong": 0.3987538814544678,
+  "worst_classes": [
+    {
+      "class": "after",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 3
+    },
+    {
+      "class": "alligator",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 0
+    },
+    {
+      "class": "another",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 0
+    },
+    {
+      "class": "bath",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 3
+    },
+    {
+      "class": "before",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 5
+    },
+    {
+      "class": "book",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 4
+    },
+    {
+      "class": "beside",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 0
+    },
+    {
+      "class": "callonphone",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 0
+    },
+    {
+      "class": "cloud",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 14
+    },
+    {
+      "class": "chocolate",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 3
+    },
+    {
+      "class": "dance",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 3
+    },
+    {
+      "class": "cowboy",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 4
+    },
+    {
+      "class": "clean",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 4
+    },
+    {
+      "class": "jeans",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 0
+    },
+    {
+      "class": "into",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 0
+    }
+  ],
+  "most_confused": [
+    {
+      "true": "listen",
+      "pred": "hear",
+      "count": 6,
+      "frac_of_true": 1.0
+    },
+    {
+      "true": "drink",
+      "pred": "yesterday",
+      "count": 5,
+      "frac_of_true": 0.5555555555555556
+    },
+    {
+      "true": "duck",
+      "pred": "goose",
+      "count": 4,
+      "frac_of_true": 0.6666666666666666
+    },
+    {
+      "true": "empty",
+      "pred": "dirty",
+      "count": 4,
+      "frac_of_true": 0.5
+    },
+    {
+      "true": "smile",
+      "pred": "lips",
+      "count": 4,
+      "frac_of_true": 0.5714285714285714
+    },
+    {
+      "true": "cat",
+      "pred": "kitty",
+      "count": 3,
+      "frac_of_true": 0.2727272727272727
+    },
+    {
+      "true": "cowboy",
+      "pred": "there",
+      "count": 3,
+      "frac_of_true": 0.75
+    },
+    {
+      "true": "can",
+      "pred": "yes",
+      "count": 3,
+      "frac_of_true": 0.375
+    },
+    {
+      "true": "there",
+      "pred": "later",
+      "count": 3,
+      "frac_of_true": 0.75
+    },
+    {
+      "true": "dance",
+      "pred": "yucky",
+      "count": 3,
+      "frac_of_true": 1.0
+    },
+    {
+      "true": "tiger",
+      "pred": "mad",
+      "count": 3,
+      "frac_of_true": 0.6
+    },
+    {
+      "true": "pretend",
+      "pred": "mouse",
+      "count": 3,
+      "frac_of_true": 1.0
+    },
+    {
+      "true": "helicopter",
+      "pred": "hen",
+      "count": 3,
+      "frac_of_true": 0.3
+    },
+    {
+      "true": "jacket",
+      "pred": "many",
+      "count": 3,
+      "frac_of_true": 0.2
+    },
+    {
+      "true": "carrot",
+      "pred": "loud",
+      "count": 3,
+      "frac_of_true": 0.3
+    },
+    {
+      "true": "chocolate",
+      "pred": "dirty",
+      "count": 3,
+      "frac_of_true": 1.0
+    },
+    {
+      "true": "bath",
+      "pred": "cry",
+      "count": 3,
+      "frac_of_true": 1.0
+    },
+    {
+      "true": "shirt",
+      "pred": "napkin",
+      "count": 3,
+      "frac_of_true": 0.42857142857142855
+    },
+    {
+      "true": "cry",
+      "pred": "dirty",
+      "count": 2,
+      "frac_of_true": 0.14285714285714285
+    },
+    {
+      "true": "cloud",
+      "pred": "grass",
+      "count": 2,
+      "frac_of_true": 0.14285714285714285
+    }
+  ],
+  "default_guess_sinks": [
+    {
+      "sign": "dirty",
+      "predicted": 26,
+      "support": 3,
+      "absorbed_from": 24
+    },
+    {
+      "sign": "food",
+      "predicted": 15,
+      "support": 0,
+      "absorbed_from": 15
+    },
+    {
+      "sign": "grass",
+      "predicted": 16,
+      "support": 4,
+      "absorbed_from": 12
+    },
+    {
+      "sign": "arm",
+      "predicted": 23,
+      "support": 11,
+      "absorbed_from": 17
+    },
+    {
+      "sign": "flower",
+      "predicted": 14,
+      "support": 3,
+      "absorbed_from": 11
+    },
+    {
+      "sign": "goose",
+      "predicted": 9,
+      "support": 0,
+      "absorbed_from": 9
+    },
+    {
+      "sign": "garbage",
+      "predicted": 7,
+      "support": 0,
+      "absorbed_from": 7
+    },
+    {
+      "sign": "nuts",
+      "predicted": 7,
+      "support": 0,
+      "absorbed_from": 7
+    },
+    {
+      "sign": "weus",
+      "predicted": 7,
+      "support": 0,
+      "absorbed_from": 7
+    },
+    {
+      "sign": "yesterday",
+      "predicted": 9,
+      "support": 3,
+      "absorbed_from": 7
+    },
+    {
+      "sign": "frog",
+      "predicted": 10,
+      "support": 4,
+      "absorbed_from": 6
+    },
+    {
+      "sign": "bye",
+      "predicted": 8,
+      "support": 3,
+      "absorbed_from": 6
+    },
+    {
+      "sign": "lips",
+      "predicted": 9,
+      "support": 4,
+      "absorbed_from": 5
+    },
+    {
+      "sign": "donkey",
+      "predicted": 9,
+      "support": 4,
+      "absorbed_from": 6
+    },
+    {
+      "sign": "nose",
+      "predicted": 8,
+      "support": 3,
+      "absorbed_from": 5
+    },
+    {
+      "sign": "mouse",
+      "predicted": 9,
+      "support": 4,
+      "absorbed_from": 5
+    },
+    {
+      "sign": "napkin",
+      "predicted": 9,
+      "support": 4,
+      "absorbed_from": 5
+    },
+    {
+      "sign": "mitten",
+      "predicted": 5,
+      "support": 0,
+      "absorbed_from": 5
+    },
+    {
+      "sign": "snack",
+      "predicted": 5,
+      "support": 0,
+      "absorbed_from": 5
+    },
+    {
+      "sign": "yes",
+      "predicted": 10,
+      "support": 5,
+      "absorbed_from": 6
+    },
+    {
+      "sign": "yucky",
+      "predicted": 8,
+      "support": 3,
+      "absorbed_from": 8
+    },
+    {
+      "sign": "puppy",
+      "predicted": 5,
+      "support": 0,
+      "absorbed_from": 5
+    }
+  ],
+  "breakdowns": {
+    "two_handed": {
+      "False": {
+        "acc": 0.7672413793103449,
+        "n": 580,
+        "n_signs": 134
+      },
+      "True": {
+        "acc": 0.24523809523809523,
+        "n": 420,
+        "n_signs": 82
+      }
+    },
+    "motion_bucket": {
+      "moderate": {
+        "acc": 0.5056497175141242,
+        "n": 354,
+        "n_signs": 72
+      },
+      "dynamic": {
+        "acc": 0.5425867507886435,
+        "n": 317,
+        "n_signs": 72
+      },
+      "static": {
+        "acc": 0.5987841945288754,
+        "n": 329,
+        "n_signs": 72
+      }
+    }
+  },
+  "confusion_figure": "/home/ben/school/ml-project/asl-recognition/results/words_transformer_full_val_asl_citizen_confusion.png",
+  "dataset": "asl_citizen"
+}

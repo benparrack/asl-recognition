@@ -1,0 +1,561 @@
+{
+  "split": "val",
+  "n": 13756,
+  "participants": [
+    34503,
+    37055,
+    62590
+  ],
+  "acc": 0.6496074440244257,
+  "top5": 0.8423960453620238,
+  "mean_confidence_correct": 0.8372842669487,
+  "mean_confidence_wrong": 0.5247138142585754,
+  "worst_classes": [
+    {
+      "class": "underwear",
+      "precision": 0.5555555555555556,
+      "recall": 0.09090909090909091,
+      "f1": 0.15625,
+      "support": 55
+    },
+    {
+      "class": "go",
+      "precision": 0.375,
+      "recall": 0.15789473684210525,
+      "f1": 0.22222222222222218,
+      "support": 57
+    },
+    {
+      "class": "beside",
+      "precision": 0.2413793103448276,
+      "recall": 0.20588235294117646,
+      "f1": 0.22222222222222224,
+      "support": 34
+    },
+    {
+      "class": "wake",
+      "precision": 0.3137254901960784,
+      "recall": 0.2857142857142857,
+      "f1": 0.29906542056074764,
+      "support": 56
+    },
+    {
+      "class": "look",
+      "precision": 0.35555555555555557,
+      "recall": 0.2711864406779661,
+      "f1": 0.3076923076923077,
+      "support": 59
+    },
+    {
+      "class": "awake",
+      "precision": 0.3050847457627119,
+      "recall": 0.3157894736842105,
+      "f1": 0.3103448275862069,
+      "support": 57
+    },
+    {
+      "class": "say",
+      "precision": 0.40625,
+      "recall": 0.2549019607843137,
+      "f1": 0.3132530120481928,
+      "support": 51
+    },
+    {
+      "class": "kitty",
+      "precision": 0.36363636363636365,
+      "recall": 0.2909090909090909,
+      "f1": 0.3232323232323232,
+      "support": 55
+    },
+    {
+      "class": "there",
+      "precision": 0.34615384615384615,
+      "recall": 0.3103448275862069,
+      "f1": 0.32727272727272727,
+      "support": 58
+    },
+    {
+      "class": "book",
+      "precision": 0.5454545454545454,
+      "recall": 0.23529411764705882,
+      "f1": 0.3287671232876712,
+      "support": 51
+    },
+    {
+      "class": "clean",
+      "precision": 0.3333333333333333,
+      "recall": 0.32608695652173914,
+      "f1": 0.32967032967032966,
+      "support": 46
+    },
+    {
+      "class": "pen",
+      "precision": 0.45454545454545453,
+      "recall": 0.25862068965517243,
+      "f1": 0.32967032967032966,
+      "support": 58
+    },
+    {
+      "class": "wait",
+      "precision": 0.5,
+      "recall": 0.2549019607843137,
+      "f1": 0.33766233766233766,
+      "support": 51
+    },
+    {
+      "class": "room",
+      "precision": 0.4411764705882353,
+      "recall": 0.2777777777777778,
+      "f1": 0.34090909090909094,
+      "support": 54
+    },
+    {
+      "class": "after",
+      "precision": 0.4375,
+      "recall": 0.28,
+      "f1": 0.34146341463414637,
+      "support": 50
+    }
+  ],
+  "most_confused": [
+    {
+      "true": "wake",
+      "pred": "awake",
+      "count": 28,
+      "frac_of_true": 0.5
+    },
+    {
+      "true": "awake",
+      "pred": "wake",
+      "count": 23,
+      "frac_of_true": 0.40350877192982454
+    },
+    {
+      "true": "lips",
+      "pred": "mouth",
+      "count": 23,
+      "frac_of_true": 0.3898305084745763
+    },
+    {
+      "true": "kiss",
+      "pred": "kitty",
+      "count": 21,
+      "frac_of_true": 0.35
+    },
+    {
+      "true": "duck",
+      "pred": "goose",
+      "count": 20,
+      "frac_of_true": 0.3125
+    },
+    {
+      "true": "goose",
+      "pred": "duck",
+      "count": 20,
+      "frac_of_true": 0.32786885245901637
+    },
+    {
+      "true": "kitty",
+      "pred": "cat",
+      "count": 19,
+      "frac_of_true": 0.34545454545454546
+    },
+    {
+      "true": "brother",
+      "pred": "boy",
+      "count": 17,
+      "frac_of_true": 0.30357142857142855
+    },
+    {
+      "true": "look",
+      "pred": "face",
+      "count": 16,
+      "frac_of_true": 0.2711864406779661
+    },
+    {
+      "true": "pen",
+      "pred": "pencil",
+      "count": 16,
+      "frac_of_true": 0.27586206896551724
+    },
+    {
+      "true": "book",
+      "pred": "open",
+      "count": 15,
+      "frac_of_true": 0.29411764705882354
+    },
+    {
+      "true": "wait",
+      "pred": "finger",
+      "count": 15,
+      "frac_of_true": 0.29411764705882354
+    },
+    {
+      "true": "yes",
+      "pred": "drop",
+      "count": 15,
+      "frac_of_true": 0.25862068965517243
+    },
+    {
+      "true": "refrigerator",
+      "pred": "uncle",
+      "count": 14,
+      "frac_of_true": 0.24561403508771928
+    },
+    {
+      "true": "can",
+      "pred": "drop",
+      "count": 14,
+      "frac_of_true": 0.24561403508771928
+    },
+    {
+      "true": "glasswindow",
+      "pred": "tooth",
+      "count": 14,
+      "frac_of_true": 0.23728813559322035
+    },
+    {
+      "true": "see",
+      "pred": "look",
+      "count": 14,
+      "frac_of_true": 0.25925925925925924
+    },
+    {
+      "true": "hear",
+      "pred": "ear",
+      "count": 13,
+      "frac_of_true": 0.24074074074074073
+    },
+    {
+      "true": "finish",
+      "pred": "tree",
+      "count": 13,
+      "frac_of_true": 0.22807017543859648
+    },
+    {
+      "true": "ride",
+      "pred": "chair",
+      "count": 13,
+      "frac_of_true": 0.23636363636363636
+    }
+  ],
+  "default_guess_sinks": [],
+  "breakdowns": {
+    "two_handed": {
+      "False": {
+        "acc": 0.6496074440244257,
+        "n": 13756,
+        "n_signs": 250
+      }
+    },
+    "motion_bucket": {
+      "moderate": {
+        "acc": 0.6548112590006546,
+        "n": 4583,
+        "n_signs": 83
+      },
+      "static": {
+        "acc": 0.6265514184397163,
+        "n": 4512,
+        "n_signs": 84
+      },
+      "dynamic": {
+        "acc": 0.666809697489809,
+        "n": 4661,
+        "n_signs": 83
+      }
+    }
+  },
+  "confusion_figure": "/home/ben/school/ml-project/asl-recognition/results/words_transformer_full_aslc_r1_val_confusion.png",
+  "other_datasets": {
+    "asl_citizen": {
+      "split": "val",
+      "n": 1000,
+      "participants": [
+        100005,
+        100012,
+        100021,
+        100026,
+        100039
+      ],
+      "acc": 0.9,
+      "top5": 0.974,
+      "mean_confidence_correct": 0.9012902975082397,
+      "mean_confidence_wrong": 0.5059663653373718,
+      "worst_classes": [
+        {
+          "class": "another",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "alligator",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "beside",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "callonphone",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "food",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "garbage",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "jeans",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "into",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "glasswindow",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "goose",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "haveto",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "hesheit",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "feet",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "every",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        {
+          "class": "wake",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        }
+      ],
+      "most_confused": [
+        {
+          "true": "pencil",
+          "pred": "pen",
+          "count": 3,
+          "frac_of_true": 0.6
+        },
+        {
+          "true": "listen",
+          "pred": "hear",
+          "count": 3,
+          "frac_of_true": 0.5
+        },
+        {
+          "true": "giraffe",
+          "pred": "hungry",
+          "count": 2,
+          "frac_of_true": 0.5
+        },
+        {
+          "true": "fall",
+          "pred": "close",
+          "count": 2,
+          "frac_of_true": 0.25
+        },
+        {
+          "true": "boy",
+          "pred": "donkey",
+          "count": 2,
+          "frac_of_true": 0.3333333333333333
+        },
+        {
+          "true": "book",
+          "pred": "boat",
+          "count": 2,
+          "frac_of_true": 0.5
+        },
+        {
+          "true": "clean",
+          "pred": "all",
+          "count": 2,
+          "frac_of_true": 0.5
+        },
+        {
+          "true": "duck",
+          "pred": "goose",
+          "count": 2,
+          "frac_of_true": 0.3333333333333333
+        },
+        {
+          "true": "talk",
+          "pred": "loud",
+          "count": 1,
+          "frac_of_true": 0.14285714285714285
+        },
+        {
+          "true": "sun",
+          "pred": "shower",
+          "count": 1,
+          "frac_of_true": 0.25
+        },
+        {
+          "true": "stuck",
+          "pred": "dance",
+          "count": 1,
+          "frac_of_true": 0.25
+        },
+        {
+          "true": "sticky",
+          "pred": "cowboy",
+          "count": 1,
+          "frac_of_true": 0.25
+        },
+        {
+          "true": "underwear",
+          "pred": "arm",
+          "count": 1,
+          "frac_of_true": 0.14285714285714285
+        },
+        {
+          "true": "will",
+          "pred": "hello",
+          "count": 1,
+          "frac_of_true": 0.3333333333333333
+        },
+        {
+          "true": "wet",
+          "pred": "drawer",
+          "count": 1,
+          "frac_of_true": 0.25
+        },
+        {
+          "true": "why",
+          "pred": "for",
+          "count": 1,
+          "frac_of_true": 0.25
+        },
+        {
+          "true": "same",
+          "pred": "shoe",
+          "count": 1,
+          "frac_of_true": 0.14285714285714285
+        },
+        {
+          "true": "ride",
+          "pred": "chair",
+          "count": 1,
+          "frac_of_true": 0.14285714285714285
+        },
+        {
+          "true": "quiet",
+          "pred": "empty",
+          "count": 1,
+          "frac_of_true": 0.25
+        },
+        {
+          "true": "read",
+          "pred": "open",
+          "count": 1,
+          "frac_of_true": 0.25
+        }
+      ],
+      "default_guess_sinks": [
+        {
+          "sign": "boat",
+          "predicted": 8,
+          "support": 3,
+          "absorbed_from": 5
+        }
+      ],
+      "breakdowns": {
+        "two_handed": {
+          "False": {
+            "acc": 0.9137931034482759,
+            "n": 580,
+            "n_signs": 134
+          },
+          "True": {
+            "acc": 0.8809523809523809,
+            "n": 420,
+            "n_signs": 82
+          }
+        },
+        "motion_bucket": {
+          "moderate": {
+            "acc": 0.884180790960452,
+            "n": 354,
+            "n_signs": 72
+          },
+          "dynamic": {
+            "acc": 0.8990536277602523,
+            "n": 317,
+            "n_signs": 72
+          },
+          "static": {
+            "acc": 0.9179331306990881,
+            "n": 329,
+            "n_signs": 72
+          }
+        }
+      },
+      "confusion_figure": "/home/ben/school/ml-project/asl-recognition/results/words_transformer_full_aslc_r1_val_asl_citizen_confusion.png"
+    }
+  },
+  "run": "words_transformer_full_aslc_r1",
+  "epoch": 38,
+  "model": "transformer",
+  "features": "full",
+  "n_channels": 153
+}
