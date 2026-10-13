@@ -388,6 +388,7 @@ class Engine:
         if self.motion_clf is not None and s.motion_letters:
             params = GateParams.for_classifier(self.motion_clf, min_confidence=s.letters_min_confidence)
             params.arm_still_frames = 4            # a hand moving into frame isn't a J/Z
+            params.discard_on_exit = True           # ...nor one leaving it
             self.gate = MotionGate(self.motion_clf, params)
         if self.words is not None:
             self.words.auto = s.words_auto_segment

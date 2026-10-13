@@ -163,6 +163,10 @@ class GateParams:
     arm_still_frames: int = 0
     arm_speed: float = 0.5
     arm_gap: float = 0.3
+    # Live only: a J/Z ends with the hand still in frame, so a clip whose hand
+    # has been gone for arm_gap s is the hand leaving, not a letter. Shorter
+    # dropouts keep recording.
+    discard_on_exit: bool = False
 
     @classmethod
     def for_classifier(cls, classifier, threshold=None, min_confidence=0.6, fps_hint=30.0):
@@ -263,6 +267,14 @@ class MotionGate:
             # the minimum length yet; only max_frames can end a short one.
             done = ((self._low >= p.min_low_streak and n_detected >= p.min_frames)
                     or n_for_max >= p.max_frames)
+            if p.discard_on_exit and raw is None:
+                if t - self._last_seen > p.arm_gap:
+                    self._log("hand left the frame, clip discarded")
+                    event = {"outcome": "left", "frames": n_detected}
+                    self._reset()
+                    self._preroll.clear()
+                    self._still, self._armed = 0, False
+                done = False
             if done:
                 event = self._resolve(t, n_detected, frame_wh)
                 self._reset()

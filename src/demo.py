@@ -357,6 +357,7 @@ def main() -> None:
         params = GateParams.for_classifier(
             motion_clf, threshold=args.motion_threshold, min_confidence=args.min_confidence)
         params.arm_still_frames = 4            # a hand moving into frame isn't a J/Z
+        params.discard_on_exit = True           # ...nor one leaving it
         motion_gate = MotionGate(motion_clf, params)
 
     words = holistic = None

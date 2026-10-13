@@ -130,6 +130,20 @@ def test_arming_ignores_a_hand_moving_into_frame():
     assert not run(gate, at(20, ("Z", "D", 1.0)))[0]          # hand was gone: disarmed
 
 
+def test_hand_leaving_frame_is_discarded_but_a_dropout_is_not():
+    params = GateParams.v2_default()
+    params.arm_still_frames, params.discard_on_exit = 4, True
+    gate = MotionGate(lambda f, ts, wh: ("J", 0.99), params, verbose=False)
+    frames = stream(("still", "I", 0.5), ("Z", "D", 0.4))
+    t_end = frames[-1][1]
+    gone = [(None, t_end + (i + 1) / 30, frames[0][2]) for i in range(30)]
+    assert [e["outcome"] for _, e in run(gate, frames + gone)[0]] == ["left"]
+
+    frames = stream(("still", "I", 0.5), ("J", "I", 1.0), ("still", "I", 1.5))
+    frames = [(None if 20 <= i <= 24 else r, t + 10.0, wh) for i, (r, t, wh) in enumerate(frames)]
+    assert [e["label"] for _, e in run(gate, frames)[0]] == ["J"]
+
+
 def test_undetected_frames_keep_timing_and_dont_crash(v2_gate):
     frames = stream(("still", "I", 1.0), ("J", "I", 1.2), ("still", "I", 1.5))
     frames = [(None if 40 <= i <= 43 else r, t, wh) for i, (r, t, wh) in enumerate(frames)]
