@@ -113,6 +113,23 @@ def test_brief_pause_does_not_fragment_clip():
     assert len(events) == 1 and calls[0] >= 10
 
 
+def test_arming_ignores_a_hand_moving_into_frame():
+    """Live: motion before the hand has ever been still (bringing it into
+    frame) must not record; after a still moment it does. Losing the hand
+    for longer than arm_gap disarms again."""
+    params = GateParams.v2_default()
+    params.arm_still_frames = 4
+    gate = MotionGate(lambda f, ts, wh: ("J", 0.99), params, verbose=False)
+
+    def at(offset, *segments):
+        return [(r, t + offset, wh) for r, t, wh in stream(*segments)]
+
+    assert not run(gate, at(0, ("Z", "D", 1.0)))[0]           # arrives moving
+    events, _ = run(gate, at(10, ("still", "I", 0.5), ("J", "I", 1.0), ("still", "I", 2.0)))
+    assert [e["label"] for _, e in events] == ["J"]
+    assert not run(gate, at(20, ("Z", "D", 1.0)))[0]          # hand was gone: disarmed
+
+
 def test_undetected_frames_keep_timing_and_dont_crash(v2_gate):
     frames = stream(("still", "I", 1.0), ("J", "I", 1.2), ("still", "I", 1.5))
     frames = [(None if 40 <= i <= 43 else r, t, wh) for i, (r, t, wh) in enumerate(frames)]

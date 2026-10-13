@@ -156,6 +156,13 @@ class GateParams:
     # v1 only buffered DETECTED frames, so its max-length cutoff counted those;
     # v2 keeps undetected frames (as NaN) to keep timing honest.
     max_counts_detected_only: bool = False
+    # Live only: a hand coming into frame moves fast and read as a J. The gate
+    # arms once the hand has been still (< arm_speed) for arm_still_frames, and
+    # disarms when the hand is gone for arm_gap s. 0 = always armed (offline
+    # clips start mid-trace).
+    arm_still_frames: int = 0
+    arm_speed: float = 0.5
+    arm_gap: float = 0.3
 
     @classmethod
     def for_classifier(cls, classifier, threshold=None, min_confidence=0.6, fps_hint=30.0):
@@ -204,6 +211,8 @@ class MotionGate:
         self._frames: list = []
         self._times: list = []
         self._low = 0
+        self._still, self._armed = 0, False
+        self._last_seen = -np.inf
         self._preroll = deque(maxlen=max(self.params.preroll, 1))
 
     def _log(self, msg):
@@ -217,16 +226,24 @@ class MotionGate:
     def update(self, raw, t: float, frame_wh) -> GateStatus:
         p = self.params
         if t < self.hold_until:
+            if raw is not None:
+                self._last_seen = t            # a hand held through the hold stays armed
             return GateStatus(recording=False, in_hold=True)
 
         dt = (t - self._prev_t) if self._prev_t is not None else 0.0
         speed = p.measure(self._prev_raw, raw, dt, frame_wh)
         if raw is not None:
+            if t - self._last_seen > p.arm_gap:
+                self._still, self._armed = 0, False
+            self._last_seen = t
+            self._still = self._still + 1 if speed < p.arm_speed else 0
+            self._armed = self._armed or self._still >= p.arm_still_frames
             self._prev_raw, self._prev_t = raw, t
+        armed = self._armed or p.arm_still_frames == 0
 
         event = None
         if not self.recording:
-            if raw is not None and speed > p.threshold:
+            if raw is not None and speed > p.threshold and armed:
                 self.recording = True
                 pre = list(self._preroll) if p.preroll else []
                 self._frames = [f for f, _ in pre] + [raw]

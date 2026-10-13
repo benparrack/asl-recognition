@@ -38,10 +38,13 @@ from data import holistic_landmarks as hl
 from data.dataset import build_transforms
 from data.landmarks import build_detector
 from demo import PredictionSmoother, letters_step, load_model, words_step
-from motion_gate import GateParams, MotionGate, load_motion_classifier
+from motion_gate import GateParams, MotionGate, hand_speed_v2, load_motion_classifier
 from words_live import WordClassifier, WordRecogniser, SegParams
 
 STATE_DIR = config.DATA_DIR / "dashboard"
+# Smoothed hand speed (hand-lengths/s) above which a letter isn't being held:
+# Ben's still holds stay under ~0.25, a hand moving into frame is well above.
+MOVING_SPEED = 0.8
 
 # GISLR sign names that aren't plain words: (label shown, text added).
 WORD_FORMS = {
@@ -354,6 +357,7 @@ class Engine:
         self.chosen = 0
         self.pending_space = False
         self.hand_gone_since: float | None = None
+        self._prev_hand, self._speed = None, 0.0
         self.events: deque = deque(maxlen=60)
         self.event_id = 0
         self.fps = 0.0
@@ -380,9 +384,11 @@ class Engine:
             self.smoother = PredictionSmoother(s.letters_window, s.letters_min_confidence)
         self.smoother.min_confidence = s.letters_min_confidence
         self.committer.hold = s.letters_hold
-        self.gate = (MotionGate(self.motion_clf, GateParams.for_classifier(
-            self.motion_clf, min_confidence=s.letters_min_confidence))
-            if self.motion_clf is not None and s.motion_letters else None)
+        self.gate = None
+        if self.motion_clf is not None and s.motion_letters:
+            params = GateParams.for_classifier(self.motion_clf, min_confidence=s.letters_min_confidence)
+            params.arm_still_frames = 4            # a hand moving into frame isn't a J/Z
+            self.gate = MotionGate(self.motion_clf, params)
         if self.words is not None:
             self.words.auto = s.words_auto_segment
             self.words.p.min_confidence = s.words_min_confidence
@@ -428,6 +434,15 @@ class Engine:
             self.transcript.add_word(word_text(top[0]["name"]), e["id"])
 
     # ------------------------------------------------------------ frames
+    def _hand_speed(self, raw, ts, wh) -> float:
+        """EMA of the hand's speed; 0 when it has just appeared or is gone."""
+        prev, self._prev_hand = self._prev_hand, (raw, ts) if raw is not None else None
+        if raw is None or prev is None:
+            self._speed = 0.0
+        else:
+            self._speed = 0.35 * hand_speed_v2(prev[0], raw, ts - prev[1], wh) + 0.65 * self._speed
+        return self._speed
+
     def _letters(self, frame, ts):
         s = self.settings
         frame, bbox, letter, conf, _, gate, raw = letters_step(
@@ -438,7 +453,8 @@ class Engine:
         if gate is not None and gate.event and gate.event["outcome"] == "accepted":
             self._commit_letter(gate.event["label"], gate.event["confidence"], "motion")
             self.committer.suppress()
-        fired = self.committer.update(None if self.motion_recording else letter, ts)
+        moving = self._hand_speed(raw, ts, frame.shape[1::-1]) > MOVING_SPEED
+        fired = self.committer.update(None if self.motion_recording or moving else letter, ts)
         if fired and s.letters_auto_add:
             self._commit_letter(fired, conf, "hold")
 
@@ -591,8 +607,11 @@ class Engine:
             }
 
     def vocabulary(self) -> list[dict]:
+        # The GISLR properties file has nondom_frac 0 for every sign (no second
+        # hand in its cache), so two-handedness comes from ASL Citizen; signs
+        # outside its 216 count as one-handed.
         two = {}
-        props = config.RESULTS_DIR / "words_sign_properties.csv"
+        props = config.RESULTS_DIR / "words_sign_properties_asl_citizen.csv"
         if props.exists():
             import pandas as pd
             two = dict(pd.read_csv(props)[["sign", "two_handed"]].itertuples(index=False))

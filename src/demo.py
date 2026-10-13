@@ -354,8 +354,10 @@ def main() -> None:
         if kind != "landmark":
             raise ValueError("--motion-checkpoint requires a landmark (--checkpoint mlp) primary model")
         motion_clf = load_motion_classifier(args.motion_checkpoint, device)
-        motion_gate = MotionGate(motion_clf, GateParams.for_classifier(
-            motion_clf, threshold=args.motion_threshold, min_confidence=args.min_confidence))
+        params = GateParams.for_classifier(
+            motion_clf, threshold=args.motion_threshold, min_confidence=args.min_confidence)
+        params.arm_still_frames = 4            # a hand moving into frame isn't a J/Z
+        motion_gate = MotionGate(motion_clf, params)
 
     words = holistic = None
     if args.words_checkpoint:

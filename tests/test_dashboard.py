@@ -140,6 +140,7 @@ def test_server_pages_state_and_streams(server):
     assert e.value.code == 404
     vocab = json.load(urllib.request.urlopen(url + "/api/vocab", timeout=10))
     assert len(vocab) == 250 and {"name", "label", "text", "two_handed"} <= set(vocab[0])
+    assert 50 < sum(v["two_handed"] for v in vocab) < 150
 
     with urllib.request.urlopen(url + "/stream.mjpg", timeout=10) as r:
         assert r.read(7) == b"--frame"
