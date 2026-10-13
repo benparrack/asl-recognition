@@ -2,7 +2,7 @@
 SignDesk: a browser dashboard for the trained letter and word models.
 
 Run:
-    python src/dashboard.py                    # opens http://127.0.0.1:8765
+    python src/dashboard.py                    # opens http://127.0.0.1:8790
     python src/dashboard.py --video data/aslc_demo/pencil_2hand.mp4   # loop a file
 
 The camera is read here, in Python, and recognition runs here
@@ -162,7 +162,7 @@ def main():
                         help="word model; '' to run letters only")
     parser.add_argument("--holistic-complexity", type=int, default=1, choices=[0, 1, 2])
     parser.add_argument("--video", default=None, help="loop this file instead of the webcam")
-    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--port", type=int, default=8790)
     parser.add_argument("--no-browser", action="store_true", help="don't open a browser tab")
     args = parser.parse_args()
 

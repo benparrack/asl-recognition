@@ -9,7 +9,7 @@ branch `feature/motion-v2-and-words` (see AUTONOMOUS_RUN_REPORT.md).
 ## 0a. SignDesk dashboard (2026-10-13)
 
 ```bash
-python src/dashboard.py        # opens http://127.0.0.1:8765 in the browser
+python src/dashboard.py        # opens http://127.0.0.1:8790 in the browser
 ```
 
 Letters and words in one page: switch with L / W, hold a letter until its ring
