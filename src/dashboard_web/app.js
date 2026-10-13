@@ -276,7 +276,8 @@ function renderTranscript() {
   if (editing) return;
 
   const box = $("#transcript-text");
-  const key = text + "\u0000" + prefs.case;
+  const cursor = S.transcript.cursor;      // null = at the end
+  const key = text + "\u0000" + prefs.case + "\u0000" + cursor;
   if (key !== shownText) {
     const prev = shownText === null ? null : shownText.split("\u0000")[0];
     shownText = key;
@@ -290,8 +291,8 @@ function renderTranscript() {
         : "<strong>Fingerspell to start.</strong><br>Hold each letter until its ring fills. Lower your hand to end a word.";
       box.append(ph);
     } else {
-      const grew = prev !== null && text.length > prev.length && text.startsWith(prev);
-      const cut = grew ? prev.length : shown.length;
+      const grew = cursor === null && prev !== null && text.length > prev.length && text.startsWith(prev);
+      const cut = grew ? prev.length : cursor === null ? shown.length : cursor;
       box.append(document.createTextNode(shown.slice(0, cut)));
       if (grew) {
         const s = document.createElement("span");
@@ -305,7 +306,8 @@ function renderTranscript() {
     ghost.id = "ghost";
     const caret = document.createElement("span");
     caret.className = "caret";
-    box.append(ghost, caret);
+    if (cursor === null || !text) box.append(ghost, caret);
+    else box.append(caret, document.createTextNode(shown.slice(cursor)), ghost);
     if (box.scrollHeight - box.scrollTop - box.clientHeight < 200) box.scrollTop = box.scrollHeight;
   }
   // The letter being held, previewed at the caret.
@@ -315,6 +317,35 @@ function renderTranscript() {
     ? displayText((text.length ? text : "") + L.letter).slice(-1) : "";
   if (g && g.textContent !== ghostText) g.textContent = ghostText;
 }
+
+// Click in the text to put the cursor there; signing puts it back at the end.
+function moveCursor(pos) {
+  const n = S.transcript.text.length;
+  cmd("cursor", { pos: pos === null || pos >= n ? null : Math.max(0, pos) });
+}
+function cursorPos() { return S.transcript.cursor === null ? S.transcript.text.length : S.transcript.cursor; }
+function wordJump(pos, dir) {
+  const t = S.transcript.text;
+  if (dir < 0) { while (pos > 0 && /\s/.test(t[pos - 1])) pos--; while (pos > 0 && !/\s/.test(t[pos - 1])) pos--; }
+  else { while (pos < t.length && !/\s/.test(t[pos])) pos++; while (pos < t.length && /\s/.test(t[pos])) pos++; }
+  return pos;
+}
+$("#transcript-text").addEventListener("click", (e) => {
+  if (!S || !S.transcript.text) return;
+  const box = e.currentTarget;
+  const hit = document.caretPositionFromPoint ? document.caretPositionFromPoint(e.clientX, e.clientY)
+    : document.caretRangeFromPoint && document.caretRangeFromPoint(e.clientX, e.clientY);
+  if (!hit) return;
+  const node = hit.offsetNode || hit.startContainer, off = hit.offset ?? hit.startOffset;
+  if (!box.contains(node)) return;
+  if (node.nodeType !== Node.TEXT_NODE || node.parentElement.id === "ghost") { moveCursor(null); return; }
+  let pos = 0;
+  const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n && n !== node; n = walk.nextNode()) {
+    if (n.parentElement.id !== "ghost") pos += n.length;
+  }
+  moveCursor(pos + off);
+});
 
 let editing = false;
 function startEdit() {
@@ -878,6 +909,7 @@ function pressKey(selector) {
 }
 
 document.addEventListener("keydown", (e) => {
+  if (e.defaultPrevented) return;                 // e.g. arrows already used by the tabs
   const t = e.target;
   const typing = t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable;
   const ctrl = e.ctrlKey || e.metaKey;
@@ -902,6 +934,8 @@ document.addEventListener("keydown", (e) => {
     if (k === "z" && !e.shiftKey) cmd("undo");
     else if ((k === "z" && e.shiftKey) || k === "y") cmd("redo");
     else if (e.key === "Delete") clearText();
+    else if (e.key === "ArrowLeft") moveCursor(wordJump(cursorPos(), -1));
+    else if (e.key === "ArrowRight") moveCursor(wordJump(cursorPos(), 1));
     else return;
     e.preventDefault();
     return;
@@ -932,6 +966,10 @@ document.addEventListener("keydown", (e) => {
     case "v": setPref("layout", prefs.layout === "captions" ? "studio" : "captions"); break;
     case "h": openHelp(); break;
     case "Tab": if (!P.running) return; nextTarget(); break;
+    case "ArrowLeft": moveCursor(cursorPos() - 1); break;
+    case "ArrowRight": moveCursor(cursorPos() + 1); break;
+    case "Home": moveCursor(0); break;
+    case "End": moveCursor(null); break;
     default: return;
   }
   e.preventDefault();

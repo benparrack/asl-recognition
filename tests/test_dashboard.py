@@ -62,6 +62,27 @@ def test_transcript_undo_redo():
     assert t.text == "a b X"
 
 
+def test_transcript_cursor_edits_in_place_and_signing_returns_to_end():
+    t = Transcript()
+    for ch in "HELO":
+        t.add_letter(ch)
+    t.move_cursor(3)                            # HEL|O
+    t.backspace()
+    assert t.text == "HEO" and t.cursor == 2
+    t.add_letter("L")                           # signed: added at the end
+    assert t.text == "HEOL" and t.cursor is None
+    t.move_cursor(2)
+    t.space()
+    assert t.text == "HE OL" and t.cursor == 3
+    t.space(at_end=True)                        # auto-space after signing
+    assert t.text == "HE OL " and t.cursor == 3
+    t.move_cursor(0)
+    t.backspace()                               # nothing before the cursor
+    assert t.text == "HE OL "
+    t.move_cursor(99)
+    assert t.cursor is None
+
+
 def test_letter_committer_fires_once_per_hold_and_suppresses():
     c = LetterCommitter(hold=0.5)
     assert c.update("A", 0.0) is None

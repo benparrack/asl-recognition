@@ -292,6 +292,7 @@ kbd {
 .transcript-edit { border: 0; resize: none; background: var(--surface-2); color: var(--text); }
 .transcript-text .placeholder { color: var(--muted); font-size: 17px; letter-spacing: 0; line-height: 1.6; display: block; }
 .transcript-text .placeholder strong { color: var(--text-2); }
+.transcript-text { cursor: text; }
 .caret { display: inline-block; width: 2px; height: 1.05em; margin-left: 1px; vertical-align: -0.15em; background: var(--accent); animation: blink 1.05s steps(1) infinite; }
 .ghost { color: var(--muted); opacity: 0.55; }
 @keyframes blink { 50% { opacity: 0; } }

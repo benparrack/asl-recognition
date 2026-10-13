@@ -122,11 +122,13 @@ def clean_settings(raw: dict, base: Settings) -> Settings:
 class Transcript:
     """The text being built, with undo/redo. `last` remembers the most recent
     recognised word while it's still at the end, so it can be swapped for one
-    of the other candidates."""
+    of the other candidates. `cursor` is where the keypad edits (None = the
+    end); anything signed is added at the end and puts the cursor back there."""
 
     def __init__(self, text: str = ""):
         self.text = text
         self.last: tuple[int, str, int] | None = None     # (start, text, event id)
+        self.cursor: int | None = None
         self._undo: list = []
         self._redo: list = []
 
@@ -135,19 +137,35 @@ class Transcript:
         del self._undo[:-500]
         self._redo.clear()
 
+    def _edit(self, fn, at_end: bool = False):
+        """Replace the text before the cursor with fn(head, tail)."""
+        c = len(self.text) if self.cursor is None or at_end else self.cursor
+        head, tail = self.text[:c], self.text[c:]
+        new = fn(head, tail)
+        if new == head:
+            return
+        self._push()
+        self.text, self.last = new + tail, None
+        if self.cursor is not None and not at_end:
+            self.cursor = len(new)
+
+    def move_cursor(self, pos: int | None):
+        self.cursor = None if pos is None or pos >= len(self.text) else max(0, pos)
+
     def _sep(self) -> str:
         return "" if not self.text or self.text[-1] in " \n" else " "
 
     def add_letter(self, ch: str):
         self._push()
         self.text += ch
-        self.last = None
+        self.last = self.cursor = None
 
     def add_word(self, word: str, event_id: int = -1):
         self._push()
         self.text += self._sep()
         self.last = (len(self.text), word, event_id)
         self.text += word + " "
+        self.cursor = None
 
     def replace_last_word(self, word: str, event_id: int) -> bool:
         """Swap the last recognised word, if it came from event_id and nothing
@@ -162,48 +180,36 @@ class Transcript:
         self.last = (start, word, event_id)
         return True
 
-    def space(self):
-        if self.text and not self.text.endswith(" "):
-            self._push()
-            self.text += " "
-            self.last = None
+    def space(self, at_end: bool = False):
+        self._edit(lambda h, t: h if not h or h.endswith(" ") or t.startswith(" ") else h + " ", at_end)
 
     def newline(self):
-        self._push()
-        self.text = self.text.rstrip(" ") + "\n"
-        self.last = None
+        self._edit(lambda h, t: h.rstrip(" ") + "\n")
 
     def punct(self, p: str):
-        if not self.text.strip():
-            return
-        self._push()
-        self.text = self.text.rstrip(" ") + p + " "
-        self.last = None
+        self._edit(lambda h, t: h if not h.strip()
+                   else h.rstrip(" ") + p + ("" if t[:1].isspace() else " "))
 
     def backspace(self):
-        if self.text:
-            self._push()
-            self.text = self.text[:-1]
-            self.last = None
+        self._edit(lambda h, t: h[:-1])
 
     def delete_word(self):
-        """Remove the last word and the whitespace after it."""
-        if not self.text:
-            return
-        self._push()
-        t = self.text.rstrip()
-        i = len(t)
-        while i and not t[i - 1].isspace():
-            i -= 1
-        self.text = t[:i]
-        self.last = None
+        """Remove the word before the cursor and the whitespace after it."""
+        def cut(h, t):
+            h = h.rstrip()
+            i = len(h)
+            while i and not h[i - 1].isspace():
+                i -= 1
+            return h[:i]
+        self._edit(cut)
 
     def clear(self):
         if self.text:
             self._push()
-            self.text, self.last = "", None
+            self.text, self.last, self.cursor = "", None, None
 
     def set_text(self, text: str):
+        self.cursor = None
         if text != self.text:
             self._push()
             self.text, self.last = text, None
@@ -212,11 +218,13 @@ class Transcript:
         if self._undo:
             self._redo.append((self.text, self.last))
             self.text, self.last = self._undo.pop()
+            self.cursor = None
 
     def redo(self):
         if self._redo:
             self._undo.append((self.text, self.last))
             self.text, self.last = self._redo.pop()
+            self.cursor = None
 
 
 # ---------------------------------------------------------------- letters
@@ -468,7 +476,7 @@ class Engine:
                 and ts - self.hand_gone_since >= s.letters_space_after):
             self.pending_space = False
             if self._adding:
-                self.transcript.space()
+                self.transcript.space(at_end=True)     # signing, so at the end
         if s.show_landmarks and raw is not None:
             _draw_points(frame, raw, _HAND_EDGES, ACCENT)
         elif s.show_landmarks and bbox is not None:            # pixel models: box only
@@ -598,6 +606,7 @@ class Engine:
                           "candidates": self.candidates, "event": self.candidates_event,
                           "chosen": self.chosen},
                 "transcript": {"text": self.transcript.text,
+                               "cursor": self.transcript.cursor,
                                "can_undo": bool(self.transcript._undo),
                                "can_redo": bool(self.transcript._redo)},
                 "events": list(self.events)[-40:],
@@ -701,6 +710,11 @@ class Engine:
                 raise ValueError("unsupported punctuation")
             t.punct(p)
             self.pending_space = False
+        elif action == "cursor":
+            pos = kw.get("pos")
+            if pos is not None and (not isinstance(pos, int) or isinstance(pos, bool)):
+                raise ValueError("pos must be an integer or null")
+            t.move_cursor(pos)
         elif action == "backspace":
             t.backspace()
         elif action == "delete_word":
