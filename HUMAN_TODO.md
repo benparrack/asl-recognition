@@ -6,6 +6,21 @@ branch `feature/motion-v2-and-words` (see AUTONOMOUS_RUN_REPORT.md).
 
 ---
 
+## 0a. SignDesk dashboard (2026-10-13)
+
+```bash
+python src/dashboard.py        # opens http://127.0.0.1:8765 in the browser
+```
+
+Letters and words in one page: switch with L / W, hold a letter until its ring
+fills, sign a word and press 1–3 to swap in another match. Edit the text with
+the keypad or keys (Space, Backspace, Shift+Backspace for a word, . , ? !,
+Ctrl+Z), or press E to edit it directly. Copy, read aloud, download, captions
+view (V), light/dark theme, text size/case/font. The Signs tab lists all 250
+words with links to how they're signed; the Practice tab prompts signs and
+tracks which ones you miss (good for the two-handed ones). Press H for all
+shortcuts. Settings and text are saved in data/dashboard/ (gitignored).
+
 ## 0. Word model trained on GISLR + ASL Citizen: try it live (2026-10-12)
 
 `checkpoints/words_transformer_full_aslc_r3_best.pt` is the current word model

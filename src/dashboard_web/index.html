@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SignDesk</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b82f6'/%3E%3Cpath d='M11 22V12.5a1.5 1.5 0 013 0V17m0-6.5a1.5 1.5 0 013 0V17m0-5a1.5 1.5 0 013 0v6.5m0-3.5a1.5 1.5 0 013 0V19a6 6 0 01-6 6h-1.5a6 6 0 01-4.6-2.2L8.2 19.6a1.5 1.5 0 012.3-1.9L11 18.3' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/app.css">
+<script src="/app.js" defer></script>
+</head>
+<body class="layout-studio">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-logo" viewBox="0 0 24 24"><path d="M7 15V7.5a1.5 1.5 0 013 0V12m0-5.5a1.5 1.5 0 013 0V12m0-4.5a1.5 1.5 0 013 0V13m0-2.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1.2a6 6 0 01-4.7-2.3L3.6 15.4a1.5 1.5 0 012.4-1.8L7 14.8"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></g></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M7 5.5v13a1 1 0 001.5.86l11-6.5a1 1 0 000-1.72l-11-6.5A1 1 0 007 5.5z"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></symbol>
+    <symbol id="i-layout" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 4v16"/></symbol>
+    <symbol id="i-captions" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M10 10.5a2 2 0 100 3M17 10.5a2 2 0 100 3"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 000 11H13"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"/></symbol>
+    <symbol id="i-speak" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7M19 5a10 10 0 010 14"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></symbol>
+    <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V5h11v2M9.5 5v14M7 19h5"/><path d="M14 13v-1.5h7V13M17.5 11.5V19M16 19h3"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></symbol>
+    <symbol id="i-space" viewBox="0 0 24 24"><path d="M3 10v4a1 1 0 001 1h16a1 1 0 001-1v-4"/></symbol>
+    <symbol id="i-backspace" viewBox="0 0 24 24"><path d="M21 5H8.5L2 12l6.5 7H21a1 1 0 001-1V6a1 1 0 00-1-1z"/><path d="M17 9l-6 6M11 9l6 6"/></symbol>
+    <symbol id="i-delword" viewBox="0 0 24 24"><path d="M3 12h4M10 8l-4 4 4 4"/><rect x="12" y="6" width="9" height="12" rx="2"/><path d="M14.5 10l4 4M18.5 10l-4 4"/></symbol>
+    <symbol id="i-enter" viewBox="0 0 24 24"><path d="M20 4v7a4 4 0 01-4 4H4"/><path d="M9 10l-5 5 5 5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="1.5"/></symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20V3H6.5A2.5 2.5 0 004 5.5v14z"/><path d="M4 19.5A2.5 2.5 0 006.5 22H20v-5"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></symbol>
+    <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5l9 7-9 7V5zM19 5v14"/></symbol>
+    <symbol id="i-camera-off" viewBox="0 0 24 24"><path d="M2 2l20 20"/><path d="M15 9.3V7a2 2 0 00-2-2H8.7M4.2 5.2A2 2 0 003 7v10a2 2 0 002 2h8a2 2 0 001.8-1.2M15 13l6 4V7l-6 4"/></symbol>
+    <symbol id="i-record" viewBox="0 0 24 24"><circle fill="currentColor" stroke="none" cx="12" cy="12" r="6"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect fill="currentColor" stroke="none" x="6.5" y="6.5" width="11" height="11" rx="2"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 00-4 0v5M14 10V4a2 2 0 00-4 0v6M10 10.5V6a2 2 0 00-4 0v8a8 8 0 0016 0v-2a2 2 0 00-4 0"/></symbol>
+    <symbol id="i-fullscreen" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 00-2 2v3M21 8V5a2 2 0 00-2-2h-3M3 16v3a2 2 0 002 2h3M16 21h3a2 2 0 002-2v-3"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip-link" href="#transcript-text">Skip to transcript</a>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark"><svg class="ic"><use href="#i-logo"/></svg></span>
+    <span class="brand-name">SignDesk</span>
+  </div>
+
+  <div class="segmented" role="radiogroup" aria-label="Recognition mode" id="mode-switch">
+    <button role="radio" data-mode="letters" aria-checked="true">Letters <kbd>L</kbd></button>
+    <button role="radio" data-mode="words" aria-checked="false">Words <kbd>W</kbd></button>
+  </div>
+
+  <div class="topbar-right">
+    <div class="status-pill" id="status-pill" role="status">
+      <span class="dot"></span><span id="status-text">Connecting…</span>
+    </div>
+    <button class="icon-btn" id="btn-layout" title="Captions view (V)" aria-label="Switch to captions view" aria-pressed="false"><svg class="ic"><use href="#i-captions"/></svg></button>
+    <button class="icon-btn" id="btn-pause" title="Pause camera (P)" aria-label="Pause camera"><svg class="ic"><use href="#i-pause"/></svg></button>
+    <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle light or dark theme"><svg class="ic"><use href="#i-sun"/></svg></button>
+    <button class="icon-btn" id="btn-help" title="Shortcuts and tips (H)" aria-label="Shortcuts and tips"><svg class="ic"><use href="#i-help"/></svg></button>
+    <button class="icon-btn" id="btn-settings" title="Settings (Ctrl+,)" aria-label="Settings"><svg class="ic"><use href="#i-settings"/></svg></button>
+  </div>
+</header>
+
+<div class="banner" id="practice-banner" hidden>
+  <svg class="ic"><use href="#i-target"/></svg>
+  <span><strong>Practice mode.</strong> Recognised signs are scored, not added to your text.</span>
+  <button class="btn btn-sm" data-action="practice-stop">Stop practice</button>
+</div>
+
+<main class="workspace">
+  <section class="col col-left">
+    <div class="card video-card" id="video-card">
+      <div class="video-frame" id="video-frame">
+        <img id="video" alt="Live camera with detected hand landmarks" draggable="false">
+        <div class="video-chip" id="video-chip"><span class="dot"></span><span id="video-chip-text">Starting…</span></div>
+        <div class="video-overlay" id="overlay-connecting">
+          <div class="spinner" aria-hidden="true"></div>
+          <p>Starting the camera…</p>
+        </div>
+        <div class="video-overlay" id="overlay-paused" hidden>
+          <svg class="ic ic-xl"><use href="#i-camera-off"/></svg>
+          <p><strong>Camera paused</strong><br><span class="muted">The camera is released while paused.</span></p>
+          <button class="btn btn-primary" data-action="resume"><svg class="ic"><use href="#i-play"/></svg>Resume <kbd>P</kbd></button>
+        </div>
+        <div class="video-overlay" id="overlay-error" hidden>
+          <svg class="ic ic-xl"><use href="#i-camera-off"/></svg>
+          <p><strong>Camera unavailable</strong><br><span class="muted" id="camera-error-text"></span></p>
+          <button class="btn" data-action="open-settings">Choose camera</button>
+        </div>
+        <div class="video-overlay" id="overlay-offline" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <p><strong>Lost connection to SignDesk</strong><br><span class="muted">Is <code>python src/dashboard.py</code> still running? Reconnecting…</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card predict-card" id="predict-card">
+      <!-- Letters -->
+      <div class="predict-letters" id="predict-letters">
+        <div class="letter-tile" id="letter-tile">
+          <svg class="hold-ring" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="track" cx="60" cy="60" r="54"/>
+            <circle class="progress" id="hold-progress" cx="60" cy="60" r="54"/>
+          </svg>
+          <span class="letter-glyph" id="letter-glyph">–</span>
+        </div>
+        <div class="predict-body">
+          <div class="predict-title" id="letter-title">Show a letter</div>
+          <div class="predict-sub" id="letter-sub">Hold a handshape steady to add it.</div>
+          <div class="meter" aria-hidden="true"><div class="meter-fill" id="letter-meter"></div></div>
+          <div class="predict-meta"><span id="letter-conf">Confidence —</span><span class="chip chip-warn" id="motion-chip" hidden>J/Z motion…</span></div>
+        </div>
+        <div class="predict-actions">
+          <button class="btn" data-action="add-letter" id="btn-add-letter" title="Add the current letter now">Add now <kbd>Enter</kbd></button>
+        </div>
+      </div>
+
+      <!-- Words -->
+      <div class="predict-words" id="predict-words" hidden>
+        <div class="words-head">
+          <div class="rec-state" id="rec-state">
+            <span class="rec-dot"></span>
+            <div>
+              <div class="predict-title" id="words-title">Ready</div>
+              <div class="predict-sub" id="words-sub">Raise your hands to start a sign.</div>
+            </div>
+          </div>
+          <div class="predict-actions">
+            <button class="btn btn-primary" data-action="sign" id="btn-sign"><svg class="ic"><use href="#i-record"/></svg><span>Record sign</span> <kbd>Enter</kbd></button>
+            <button class="btn btn-ghost" data-action="cancel-sign" id="btn-cancel-sign" hidden>Cancel <kbd>Esc</kbd></button>
+          </div>
+        </div>
+        <div class="candidates-head" id="candidates-head" hidden>
+          <span id="candidates-label">Top matches</span>
+          <span class="muted small" id="candidates-hint">Press 1–3 or click to swap the word</span>
+        </div>
+        <ol class="candidates" id="candidates"></ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="col col-right">
+    <div class="card transcript-card">
+      <div class="card-head">
+        <div class="card-title">
+          <h2>Transcript</h2>
+          <span class="muted small" id="transcript-count">0 words</span>
+        </div>
+        <div class="toolbar" role="toolbar" aria-label="Transcript tools">
+          <button class="icon-btn" data-action="undo" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="ic"><use href="#i-undo"/></svg></button>
+          <button class="icon-btn" data-action="redo" id="btn-redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="ic"><use href="#i-redo"/></svg></button>
+          <span class="toolbar-sep"></span>
+          <button class="icon-btn" data-action="copy" title="Copy text (C)" aria-label="Copy text"><svg class="ic"><use href="#i-copy"/></svg></button>
+          <button class="icon-btn" data-action="speak" id="btn-speak" title="Read aloud (S)" aria-label="Read aloud"><svg class="ic"><use href="#i-speak"/></svg></button>
+          <button class="icon-btn" data-action="download" title="Download as .txt" aria-label="Download as text file"><svg class="ic"><use href="#i-download"/></svg></button>
+          <span class="toolbar-sep"></span>
+          <div class="popover-wrap">
+            <button class="icon-btn" id="btn-display" title="Text display" aria-label="Text display options" aria-haspopup="true" aria-expanded="false"><svg class="ic"><use href="#i-type"/></svg></button>
+            <div class="popover" id="display-popover" hidden>
+              <div class="field-label">Text size</div>
+              <div class="segmented segmented-sm" data-pref="size">
+                <button data-value="s">S</button><button data-value="m">M</button><button data-value="l">L</button><button data-value="xl">XL</button>
+              </div>
+              <div class="field-label">Letter case</div>
+              <div class="segmented segmented-sm" data-pref="case">
+                <button data-value="sentence">Sentence</button><button data-value="asis">As signed</button><button data-value="upper">ABC</button><button data-value="lower">abc</button>
+              </div>
+              <div class="field-label">Font</div>
+              <div class="segmented segmented-sm" data-pref="font">
+                <button data-value="sans">Sans</button><button data-value="serif">Serif</button><button data-value="mono">Mono</button>
+              </div>
+              <label class="switch-row"><span>Speak words as they're added</span><input type="checkbox" class="switch" data-pref-check="speakWords"></label>
+            </div>
+          </div>
+          <button class="icon-btn" data-action="edit" id="btn-edit" title="Edit text with the keyboard (E)" aria-label="Edit text"><svg class="ic"><use href="#i-edit"/></svg></button>
+          <button class="icon-btn danger" data-action="clear" title="Clear (Ctrl+Delete)" aria-label="Clear text"><svg class="ic"><use href="#i-trash"/></svg></button>
+        </div>
+      </div>
+
+      <div class="edit-banner" id="edit-banner" hidden>
+        <span>Editing. Signs won't be added until you're done.</span>
+        <button class="btn btn-sm btn-primary" data-action="edit-done">Done <kbd>Ctrl+Enter</kbd></button>
+      </div>
+      <div class="transcript-body" id="transcript-body">
+        <div class="transcript-text" id="transcript-text" tabindex="-1" aria-live="polite" aria-label="Transcript"></div>
+        <textarea class="transcript-edit" id="transcript-edit" hidden aria-label="Edit transcript" spellcheck="true"></textarea>
+      </div>
+
+      <div class="keypad" role="toolbar" aria-label="Edit text">
+        <button class="key key-wide" data-action="space" title="Space (Space)"><svg class="ic"><use href="#i-space"/></svg>Space</button>
+        <button class="key key-wide" data-action="backspace" title="Delete letter (Backspace)"><svg class="ic"><use href="#i-backspace"/></svg>Letter</button>
+        <button class="key key-wide" data-action="delete_word" title="Delete word (Shift+Backspace)"><svg class="ic"><use href="#i-delword"/></svg>Word</button>
+        <button class="key key-wide" data-action="newline" title="New line (Shift+Enter)"><svg class="ic"><use href="#i-enter"/></svg>Line</button>
+        <span class="keypad-sep"></span>
+        <button class="key key-punct" data-action="punct" data-char="." title="Full stop">.</button>
+        <button class="key key-punct" data-action="punct" data-char="," title="Comma">,</button>
+        <button class="key key-punct" data-action="punct" data-char="?" title="Question mark">?</button>
+        <button class="key key-punct" data-action="punct" data-char="!" title="Exclamation mark">!</button>
+      </div>
+    </div>
+
+    <div class="card tabs-card">
+      <div class="tabs" role="tablist" aria-label="Panels">
+        <button role="tab" id="tab-activity" aria-controls="panel-activity" aria-selected="true"><svg class="ic"><use href="#i-activity"/></svg>Activity</button>
+        <button role="tab" id="tab-signs" aria-controls="panel-signs" aria-selected="false"><svg class="ic"><use href="#i-book"/></svg>Signs</button>
+        <button role="tab" id="tab-practice" aria-controls="panel-practice" aria-selected="false"><svg class="ic"><use href="#i-target"/></svg>Practice</button>
+      </div>
+
+      <div class="panel" role="tabpanel" id="panel-activity" aria-labelledby="tab-activity">
+        <ul class="activity" id="activity"></ul>
+        <div class="empty" id="activity-empty">
+          <svg class="ic ic-lg"><use href="#i-activity"/></svg>
+          <p>Every letter and sign the models recognise shows up here, with its confidence.</p>
+        </div>
+      </div>
+
+      <div class="panel" role="tabpanel" id="panel-signs" aria-labelledby="tab-signs" hidden>
+        <div class="search">
+          <svg class="ic"><use href="#i-search"/></svg>
+          <input type="search" id="sign-search" placeholder="Search signs" aria-label="Search signs" autocomplete="off">
+          <span class="muted small" id="sign-count"></span>
+        </div>
+        <div class="filter-row">
+          <div class="segmented segmented-sm" id="sign-filter">
+            <button data-value="all" aria-pressed="true">All</button>
+            <button data-value="one" aria-pressed="false">One hand</button>
+            <button data-value="two" aria-pressed="false">Two hands</button>
+          </div>
+        </div>
+        <ul class="sign-grid" id="sign-grid"></ul>
+        <p class="muted small hint-line">Click a sign to type it. Its book icon opens a video of it on SignASL.org.</p>
+      </div>
+
+      <div class="panel" role="tabpanel" id="panel-practice" aria-labelledby="tab-practice" hidden>
+        <div id="practice-setup">
+          <p class="lead">Get a prompt, sign it, see what the model saw. Results are kept on this computer so you can focus on the ones you miss.</p>
+          <div class="field-label">Practise</div>
+          <div class="segmented" id="practice-kind">
+            <button data-value="words" aria-pressed="true">Words</button>
+            <button data-value="letters" aria-pressed="false">Letters</button>
+          </div>
+          <div class="field-label">Choose from</div>
+          <div class="segmented" id="practice-pool">
+            <button data-value="all" aria-pressed="true">All</button>
+            <button data-value="weak" aria-pressed="false">Needs work</button>
+            <button data-value="two" aria-pressed="false">Two-handed</button>
+          </div>
+          <button class="btn btn-primary btn-block" data-action="practice-start"><svg class="ic"><use href="#i-play"/></svg>Start practice</button>
+          <div class="practice-stats" id="practice-stats"></div>
+        </div>
+
+        <div id="practice-run" hidden>
+          <div class="target" id="practice-target-card">
+            <div class="target-label">Sign this</div>
+            <div class="target-word" id="practice-target">–</div>
+            <a class="link small" id="practice-lookup" target="_blank" rel="noopener noreferrer"><svg class="ic"><use href="#i-external"/></svg>See how it's signed</a>
+            <div class="target-result" id="practice-result" role="status"></div>
+          </div>
+          <div class="practice-score">
+            <div><span class="num" id="practice-correct">0</span><span class="muted small">correct</span></div>
+            <div><span class="num" id="practice-tries">0</span><span class="muted small">tries</span></div>
+            <div><span class="num" id="practice-streak">0</span><span class="muted small">streak</span></div>
+            <div><span class="num" id="practice-best">0</span><span class="muted small">best</span></div>
+          </div>
+          <div class="row-buttons">
+            <button class="btn" data-action="practice-skip"><svg class="ic"><use href="#i-skip"/></svg>Skip <kbd>Tab</kbd></button>
+            <button class="btn btn-ghost" data-action="practice-stop">Stop</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="statusbar">
+  <span id="model-info">Loading models…</span>
+  <span class="muted">Press <kbd>H</kbd> for shortcuts and tips</span>
+</footer>
+
+<!-- Settings drawer -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="settings" aria-labelledby="settings-title" role="dialog" aria-modal="true" hidden>
+  <div class="drawer-head">
+    <h2 id="settings-title">Settings</h2>
+    <button class="icon-btn" data-action="close-settings" aria-label="Close settings"><svg class="ic"><use href="#i-close"/></svg></button>
+  </div>
+  <div class="drawer-body">
+    <section class="settings-group">
+      <h3>Letters</h3>
+      <label class="switch-row"><span>Add letters automatically<small>Hold a letter steady to add it. Off: press Enter.</small></span><input type="checkbox" class="switch" data-setting="letters_auto_add"></label>
+      <div class="range-row"><label for="s-letters_hold">Hold time</label><output data-for="letters_hold"></output>
+        <input type="range" id="s-letters_hold" data-setting="letters_hold" min="0.3" max="2" step="0.1" data-unit="s"></div>
+      <label class="switch-row"><span>Space when you lower your hand<small>After fingerspelling, drop your hand to end the word.</small></span><input type="checkbox" class="switch" data-setting="letters_auto_space"></label>
+      <div class="range-row"><label for="s-letters_space_after">Lowered for</label><output data-for="letters_space_after"></output>
+        <input type="range" id="s-letters_space_after" data-setting="letters_space_after" min="0.5" max="4" step="0.1" data-unit="s"></div>
+      <label class="switch-row" id="row-motion"><span>J and Z (motion letters)<small>Trace the letter in the air.</small></span><input type="checkbox" class="switch" data-setting="motion_letters"></label>
+      <div class="range-row"><label for="s-letters_min_confidence">Minimum confidence</label><output data-for="letters_min_confidence"></output>
+        <input type="range" id="s-letters_min_confidence" data-setting="letters_min_confidence" min="0.3" max="0.95" step="0.05" data-unit="%"></div>
+      <div class="range-row"><label for="s-letters_window">Smoothing</label><output data-for="letters_window"></output>
+        <input type="range" id="s-letters_window" data-setting="letters_window" min="5" max="30" step="1" data-unit="frames"></div>
+    </section>
+
+    <section class="settings-group" id="settings-words">
+      <h3>Words</h3>
+      <label class="switch-row"><span>Detect signs automatically<small>Raising your hands starts a sign; lowering them or holding still ends it. Off: press Enter to start and stop.</small></span><input type="checkbox" class="switch" data-setting="words_auto_segment"></label>
+      <label class="switch-row"><span>Add recognised words<small>Off: pick each word from the matches yourself.</small></span><input type="checkbox" class="switch" data-setting="words_auto_add"></label>
+      <div class="range-row"><label for="s-words_min_confidence">Minimum confidence</label><output data-for="words_min_confidence"></output>
+        <input type="range" id="s-words_min_confidence" data-setting="words_min_confidence" min="0" max="0.9" step="0.05" data-unit="%"></div>
+      <div class="range-row"><label for="s-words_lull_speed">End sign when hands are still</label><output data-for="words_lull_speed"></output>
+        <input type="range" id="s-words_lull_speed" data-setting="words_lull_speed" min="0" max="1" step="0.05" data-unit="lull"></div>
+    </section>
+
+    <section class="settings-group">
+      <h3>Camera</h3>
+      <div class="select-row"><label for="s-camera">Camera</label><select id="s-camera" data-setting="camera"></select></div>
+      <label class="switch-row"><span>Mirror view<small>Show the camera like a mirror. Recognition isn't affected.</small></span><input type="checkbox" class="switch" data-setting="mirror"></label>
+      <label class="switch-row"><span>Show hand landmarks</span><input type="checkbox" class="switch" data-setting="show_landmarks"></label>
+    </section>
+
+    <section class="settings-group">
+      <h3>Appearance</h3>
+      <div class="field-label">Theme</div>
+      <div class="segmented segmented-sm" data-pref="theme">
+        <button data-value="system">System</button><button data-value="dark">Dark</button><button data-value="light">Light</button>
+      </div>
+      <div class="field-label">Transcript text size</div>
+      <div class="segmented segmented-sm" data-pref="size">
+        <button data-value="s">S</button><button data-value="m">M</button><button data-value="l">L</button><button data-value="xl">XL</button>
+      </div>
+      <div class="field-label">Letter case</div>
+      <div class="segmented segmented-sm" data-pref="case">
+        <button data-value="sentence">Sentence</button><button data-value="asis">As signed</button><button data-value="upper">ABC</button><button data-value="lower">abc</button>
+      </div>
+      <div class="field-label">Font</div>
+      <div class="segmented segmented-sm" data-pref="font">
+        <button data-value="sans">Sans</button><button data-value="serif">Serif</button><button data-value="mono">Mono</button>
+      </div>
+      <label class="switch-row"><span>Speak words as they're added</span><input type="checkbox" class="switch" data-pref-check="speakWords"></label>
+    </section>
+
+    <section class="settings-group">
+      <h3>Models</h3>
+      <dl class="models" id="models-list"></dl>
+    </section>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-ghost" data-action="reset-settings">Reset recognition settings</button>
+  </div>
+</aside>
+
+<!-- Help -->
+<div class="modal-wrap" id="help" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="drawer-head">
+      <h2 id="help-title">Welcome to SignDesk</h2>
+      <button class="icon-btn" data-action="close-help" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="help-grid">
+        <section>
+          <h3>How it works</h3>
+          <ul class="tips">
+            <li><strong>Letters:</strong> hold a handshape steady until the ring fills and it's added. Trace J or Z in the air. Lower your hand to end a word.</li>
+            <li><strong>Words:</strong> raise your hands, sign, then lower them (or hold still). The best match is added; press <kbd>1</kbd>–<kbd>3</kbd> to swap it for another match.</li>
+            <li><strong>Two-handed signs:</strong> sit back so you're visible from head to waist, with the camera at face height, and sign at chest height. With your hands close to the camera, often only one gets detected.</li>
+            <li><strong>Practice</strong> scores you on prompts without touching your text.</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Keyboard</h3>
+          <table class="keys">
+            <tr><td><kbd>L</kbd> / <kbd>W</kbd></td><td>Letters / words mode</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Add the letter now / start or stop a sign</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Cancel the sign being recorded</td></tr>
+            <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td><td>Use that match instead</td></tr>
+            <tr><td><kbd>Space</kbd></td><td>Space</td></tr>
+            <tr><td><kbd>⌫</kbd> / <kbd>Shift+⌫</kbd></td><td>Delete letter / word</td></tr>
+            <tr><td><kbd>Shift+Enter</kbd></td><td>New line</td></tr>
+            <tr><td><kbd>. , ? !</kbd></td><td>Punctuation</td></tr>
+            <tr><td><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd></td><td>Undo / redo</td></tr>
+            <tr><td><kbd>Ctrl+Delete</kbd></td><td>Clear text (undoable)</td></tr>
+            <tr><td><kbd>C</kbd> / <kbd>S</kbd> / <kbd>E</kbd></td><td>Copy / speak / edit text</td></tr>
+            <tr><td><kbd>P</kbd> / <kbd>V</kbd></td><td>Pause camera / captions view</td></tr>
+            <tr><td><kbd>Tab</kbd></td><td>Practice: skip the prompt</td></tr>
+            <tr><td><kbd>Ctrl+,</kbd> / <kbd>H</kbd></td><td>Settings / this help</td></tr>
+          </table>
+        </section>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn btn-primary" data-action="close-help">Get started</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+</body>
+</html>

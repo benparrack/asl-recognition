@@ -29,3 +29,6 @@ results/*.png
 logs/
 data/external/
 data/aslc_demo/
+
+# SignDesk dashboard settings and saved transcript
+data/dashboard/

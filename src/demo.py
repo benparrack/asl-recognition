@@ -197,8 +197,8 @@ def letters_step(frame, kind, model, detector, transform, smoother, motion_gate,
     """One frame of letters mode, the loop body from before words mode existed.
     letter/confidence carry over from the previous frame (they stay on screen
     while the J/Z gate is recording). Returns (display frame, bbox, letter,
-    confidence, debug crop, gate status)."""
-    bbox, gate_status = None, None
+    confidence, debug crop, gate status, raw hand landmarks or None)."""
+    bbox, gate_status, raw = None, None, None
     # Mirror -- capture_data.py also flipped, so this keeps handedness
     # consistent with training. Remove it in one place and you must remove
     # it in both.
@@ -270,12 +270,13 @@ def letters_step(frame, kind, model, detector, transform, smoother, motion_gate,
                 letter = smoother.update(None)
                 confidence = 0.0
 
-    return frame, bbox, letter, confidence, crop, gate_status
+    return frame, bbox, letter, confidence, crop, gate_status, raw
 
 
 def words_step(frame, holistic, words, ts):
     """One frame of words mode. Holistic sees the UN-flipped frame (GISLR
-    wasn't mirrored); the returned frame is mirrored for display."""
+    wasn't mirrored); the returned frame is mirrored for display. Also returns
+    the selected landmarks (un-mirrored) for drawing."""
     h, w = frame.shape[:2]
     results = holistic.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
     lm = hf.frame_from_holistic(results)
@@ -285,7 +286,7 @@ def words_step(frame, holistic, words, ts):
     if len(hands):
         xs, ys = (1.0 - hands[:, 0]) * w, hands[:, 1] * h          # mirrored for display
         bbox = (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))
-    return cv2.flip(frame, 1), bbox, status
+    return cv2.flip(frame, 1), bbox, status, lm
 
 
 def on_word_event(ev, word_top, sentence, ts):
@@ -416,11 +417,11 @@ def main() -> None:
         ts = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0 if args.video else time.time()
 
         if mode == "words":
-            frame, bbox, word_status = words_step(frame, holistic, words, ts)
+            frame, bbox, word_status, _ = words_step(frame, holistic, words, ts)
             letter, confidence, crop, gate_status = None, 0.0, None, None
             word_top = on_word_event(word_status.event, word_top, sentence, ts)
         else:
-            frame, bbox, letter, confidence, crop, gate_status = letters_step(
+            frame, bbox, letter, confidence, crop, gate_status, _ = letters_step(
                 frame, kind, model, detector, transform, smoother, motion_gate, args, device, ts,
                 letter, confidence)
 

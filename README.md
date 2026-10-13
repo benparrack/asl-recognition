@@ -13,7 +13,10 @@ A computer vision system for ASL from webcam input, in three parts:
 ```bash
 source ../.venv/bin/activate
 
-# letters (the working demo)
+# SignDesk: the dashboard (letters, J/Z, words, editing, practice) at http://127.0.0.1:8765
+python src/dashboard.py                     # --video clip.mp4 to loop a file, --port N
+
+# letters (the original OpenCV demo)
 python src/demo.py --checkpoint checkpoints/mlp_pugeault_best.pt
 
 # letters + J/Z, once a v2 motion model exists
@@ -69,7 +72,8 @@ asl-recognition/
 │   ├── train_words.py, evaluate_words.py, ablation_words.py
 │   ├── words_live.py         # live word segmentation + classification (replay-tested)
 │   ├── eval_word_videos.py, bench_words_fps.py
-│   └── demo.py               # live webcam or --video: letters, J/Z, words
+│   ├── demo.py               # live webcam or --video: letters, J/Z, words
+│   ├── dashboard.py, dashboard_engine.py, dashboard_web/   # SignDesk browser dashboard
 ├── data/raw/               # untouched downloads (gitignored)
 ├── data/processed/         # crops, landmarks, metadata.csv (gitignored)
 ├── checkpoints/            # saved weights (gitignored)
