@@ -6,6 +6,7 @@ import socket
 import threading
 import urllib.error
 import urllib.request
+from types import SimpleNamespace
 
 import cv2
 import numpy as np
@@ -289,3 +290,43 @@ def test_server_profiles_corrections_and_teaching_stay_per_profile(server):
     assert engine.samples.counts()["words"] == {"pencil": 1}
     with pytest.raises(urllib.error.HTTPError):
         post(url, {"action": "profile", "op": "delete", "id": first})     # the only one left
+
+
+def test_traced_j_is_added_once_after_its_end_is_held(tmp_path, monkeypatch):
+    if not LETTERS.exists():
+        pytest.skip("trained checkpoints not present")
+    import dashboard_engine
+    from dashboard_engine import Engine
+
+    engine = Engine(LETTERS, None, None, 0, "none.mp4", state_dir=tmp_path)
+    engine.settings.letters_hold = 0.5
+    engine._apply_settings()
+    hand = np.random.default_rng(0).random((21, 3)).astype(np.float32)
+    script = {}                                  # ts -> (letter, gate event, raw)
+
+    def fake_step(frame, *args):
+        letter, event, raw = script[args[-3]]
+        gate = SimpleNamespace(recording=False, event=event)
+        return frame, (0, 0, 1, 1) if raw is not None else None, letter, 0.9, None, gate, raw
+
+    monkeypatch.setattr(dashboard_engine, "letters_step", fake_step)
+    frame = np.zeros((240, 320, 3), np.uint8)
+    j = {"outcome": "accepted", "label": "J", "confidence": 0.95}
+
+    def run(t0, t1, letter, event=None, raw=hand):
+        for i, t in enumerate(np.arange(t0, t1, 1 / 30)):
+            script[t] = (letter, event if i == 0 else None, raw)
+            engine._letters(frame, t)
+
+    run(0.0, 0.3, "I", j)                        # trace accepted, end handshape held briefly
+    assert engine.transcript.text == "" and engine.letter == "J"
+    run(0.3, 0.7, "I", j)                        # the gate fires again for the same trace
+    run(0.7, 1.5, "I")                           # held: J added once, its I isn't
+    assert engine.transcript.text == "J"
+    run(1.5, 3.0, "I")
+    assert engine.transcript.text == "J"
+    run(3.0, 3.2, None, raw=None)                # hand gone
+    run(3.2, 3.4, "D", {**j, "label": "Z"})
+    run(3.4, 3.5, None, raw=None)                # Z not held: dropped
+    run(3.5, 4.5, "D")
+    assert engine.transcript.text == "JD"

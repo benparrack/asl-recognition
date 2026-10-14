@@ -8,8 +8,9 @@ added on top is everything a usable tool needs around the raw predictions:
 
   letters  a smoothed letter held steady for `letters_hold` seconds is added
            once; it can't repeat until the letter changes or the hand drops
-           (double letters: drop the hand briefly, or press Enter). J/Z from
-           the motion gate are added the moment the gate accepts them. After a
+           (double letters: drop the hand briefly, or press Enter). A J/Z the
+           motion gate accepts is added the same way: once its end is held
+           still for `letters_hold` seconds. After a
            fingerspelled run, lowering the hand for `letters_space_after`
            seconds adds the space.
   words    an accepted sign is added as a word; its top-3 stay on screen and
@@ -53,6 +54,9 @@ STATE_DIR = config.DATA_DIR / "dashboard"
 # Smoothed hand speed (hand-lengths/s) above which a letter isn't being held:
 # Ben's still holds stay under ~0.25, a hand moving into frame is well above.
 MOVING_SPEED = 0.8
+# A traced J/Z has this long (plus the hold time) to be held still at its end,
+# or it's dropped: a stray trace mid-spelling shouldn't land on the next hold.
+MOTION_HOLD_WINDOW = 2.0
 
 # GISLR sign names that aren't plain words: (label shown, text added).
 WORD_FORMS = {
@@ -373,6 +377,7 @@ class Engine:
         self.letter, self.confidence = None, 0.0
         self.hand = False
         self.motion_recording = False
+        self.motion_pending = None                   # (label, confidence, traced at) awaiting its hold
         self.word_status = None
         self.candidates: list[dict] = []
         self.candidates_event = -1
@@ -537,9 +542,14 @@ class Engine:
         self.letter, self.confidence = letter, conf
         self.motion_recording = bool(gate is not None and gate.recording)
         if gate is not None and gate.event and gate.event["outcome"] == "accepted":
-            self._commit_letter(gate.event["label"], gate.event["confidence"], "motion")
-            self.committer.suppress()
+            self.motion_pending = (gate.event["label"], gate.event["confidence"], ts)
         moving = self._hand_speed(raw, ts, frame.shape[1::-1]) > MOVING_SPEED
+        mp = self.motion_pending
+        if mp and (raw is None or ts - mp[2] > MOTION_HOLD_WINDOW + s.letters_hold):
+            self.motion_pending = mp = None
+        if mp:                                         # hold the end of the J/Z, like a static letter
+            self.letter, self.confidence = mp[0], mp[1]
+            letter = mp[0]
         if self.teach and self.teach["kind"] == "letters" and raw is not None and not moving:
             self.teach["vecs"].append(normalise_landmarks(raw))
             if len(self.teach["vecs"]) >= LETTER_TAKE_FRAMES:
@@ -549,7 +559,12 @@ class Engine:
                 self.teach = None
         fired = self.committer.update(None if self.motion_recording or moving else letter, ts)
         if fired and s.letters_auto_add:
-            self._commit_letter(fired, conf, "hold")
+            if mp:
+                self._commit_letter(mp[0], mp[1], "motion")
+                self.motion_pending = None
+                self.committer.suppress()              # nor the I / D handshape it ends in
+            else:
+                self._commit_letter(fired, conf, "hold")
 
         self.hand = bbox is not None
         if self.hand:
@@ -728,6 +743,7 @@ class Engine:
         self.smoother.buffer.clear()
         self.committer.reset()
         self.letter, self.confidence, self.motion_recording = None, 0.0, False
+        self.motion_pending = None
         if self.gate is not None:
             self._apply_settings()                       # a fresh gate, nothing buffered
         if self.words is not None:
@@ -813,6 +829,7 @@ class Engine:
             if self.mode == "letters" and self.letter and self.hand:
                 self._commit_letter(self.letter, self.confidence, "manual")
                 self.committer.fired = True
+                self.motion_pending = None
         elif action == "sign":                           # words: start / stop by hand
             if self.words is None or self.mode != "words":
                 raise ValueError("words mode is not active")
