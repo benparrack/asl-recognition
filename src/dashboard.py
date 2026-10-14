@@ -13,8 +13,8 @@ the page needs no internet.
 
 The server binds to 127.0.0.1 and refuses requests whose Host header isn't
 this machine, so other websites open in the browser can't read the camera or
-the text (DNS rebinding). Settings and the transcript are saved under
-data/dashboard/ (gitignored).
+the text (DNS rebinding). Profiles (settings, transcript, taught examples)
+are saved under data/dashboard/profiles/ (gitignored).
 """
 
 from __future__ import annotations
@@ -83,6 +83,8 @@ def make_handler(engine: Engine, port: int):
                 return self._json(engine.snapshot())
             if path == "/api/vocab":
                 return self._json(engine.vocabulary())
+            if path == "/api/profiles":
+                return self._json(engine.profile_info())
             f = (WEB_DIR / path.lstrip("/")).resolve()
             if f.parent != WEB_DIR or not f.is_file():    # no path traversal, no subdirs
                 return self._send(404, b"not found", "text/plain")

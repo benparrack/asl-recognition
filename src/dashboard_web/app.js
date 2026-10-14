@@ -1,7 +1,8 @@
 // SignDesk client. The server owns recognition, the transcript and the
 // recognition settings; this page renders its state (server-sent events) and
-// sends commands. Display preferences and practice history live in
-// localStorage, which is optional: everything works without it.
+// sends commands. Display preferences and practice history (per profile) live
+// in localStorage, which is optional: everything works without it. Profiles
+// and taught examples are the server's (GET /api/profiles).
 "use strict";
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -33,6 +34,8 @@ let shownCandidates = "";
 let shownEvents = "";
 let offline = false;
 let streamStarted = false;
+let profiles = null;       // GET /api/profiles: {profiles, current, counts, v, letters, words}
+let shownProfileV = -1;
 
 // ------------------------------------------------------------------ server
 async function cmd(action, data = {}) {
@@ -103,6 +106,8 @@ function render() {
   renderTranscript();
   renderEvents();
   renderSettings();
+  renderTeachCard();
+  if (S.profile.v !== shownProfileV) loadProfiles();
   handleNewEvents();
 }
 
@@ -419,7 +424,7 @@ function ago(t) {
 }
 
 function visibleEvent(e) {
-  return e.kind === "letter" || (e.kind === "word" && (e.outcome !== "too_short" || e.reason === "manual_stop"));
+  return e.kind === "letter" || e.kind === "taught" || (e.kind === "word" && (e.outcome !== "too_short" || e.reason === "manual_stop"));
 }
 
 function renderEvents(force = false) {
@@ -438,7 +443,11 @@ function renderEvents(force = false) {
     when.className = "when"; when.textContent = ago(e.t);
     what.className = "what"; detail.className = "detail";
     const added = e.committed ? "added" : S.practice ? "practice" : "not added";
-    if (e.kind === "letter") {
+    if (e.kind === "taught") {
+      badge.className = "badge"; badge.textContent = "✓";
+      what.textContent = `Taught ${e.label}`;
+      detail.textContent = "Saved to this profile";
+    } else if (e.kind === "letter") {
       badge.className = "badge"; badge.textContent = e.letter;
       what.textContent = `Letter ${e.letter}`;
       detail.textContent = `${Math.round(e.confidence * 100)}% · ${{ hold: "held", motion: "traced", manual: "added by hand" }[e.source] || e.source} · ${added}`;
@@ -452,7 +461,8 @@ function renderEvents(force = false) {
       badge.textContent = e.outcome === "accepted" ? "W" : "?";
       what.textContent = top.label;
       const others = e.top.slice(1).map((c) => `${c.label} ${Math.round(c.p * 100)}%`).join(", ");
-      detail.textContent = `${Math.round(top.p * 100)}% · ${e.outcome === "low_confidence" ? "unsure" : added}${others ? ` · also ${others}` : ""}`;
+      detail.textContent = `${Math.round(top.p * 100)}% · ${e.outcome === "low_confidence" ? "unsure" : added}${others ? ` · also ${others}` : ""}`
+        + (e.taught ? ` · saved as your “${signLabel(e.taught)}”` : e.learned ? ` · learned as your “${signLabel(e.learned)}”` : "");
     }
     body.append(what, detail);
     li.append(badge, body, when);
@@ -469,6 +479,7 @@ function handleNewEvents() {
     if (e.kind === "word" && e.committed && prefs.speakWords && e.top.length) speak(e.top[0].label.split(" / ")[0], true);
     if (e.kind === "word" && e.outcome === "too_short" && e.reason === "manual_stop") toast("That sign was too short. Try again with your hands in view.");
     if (P.running) practiceEvent(e);
+    if (e.kind === "taught" || e.taught) toast(`Taught “${signLabel(e.label || e.taught)}”. Add another example, or try it out.`);
   }
 }
 
@@ -594,7 +605,7 @@ for (const group of $$("[data-pref]")) {
 for (const c of $$("[data-pref-check]")) c.addEventListener("change", () => setPref(c.dataset.prefCheck, c.checked));
 
 // ------------------------------------------------------------------ tabs
-const TABS = ["activity", "signs", "practice"];
+const TABS = ["activity", "signs", "practice", "teach"];
 function selectTab(name, focus = false) {
   for (const t of TABS) {
     const tab = $(`#tab-${t}`);
@@ -605,6 +616,7 @@ function selectTab(name, focus = false) {
   if (focus) $(`#tab-${name}`).focus();
   prefs.tab = name; store(PREFS_KEY, prefs);
   if (name === "practice") renderPracticeSetup();
+  if (name === "teach") renderTeach();
 }
 for (const t of TABS) $(`#tab-${t}`).addEventListener("click", () => selectTab(t));
 $(".tabs").addEventListener("keydown", (e) => {
@@ -646,6 +658,8 @@ function renderSigns() {
     name.textContent = v.label;
     b.append(name);
     if (v.two_handed) { const t = document.createElement("span"); t.className = "tag"; t.textContent = "2H"; t.title = "Two-handed"; b.append(t); }
+    const n = taughtCount("words", v.name);
+    if (n) { const t = document.createElement("span"); t.className = "tag tag-taught"; t.textContent = `✓${n}`; t.title = `Taught: ${n} example${n > 1 ? "s" : ""} from this profile`; b.append(t); }
     const a = document.createElement("a");
     a.href = lookupUrl(v.text);
     a.target = "_blank"; a.rel = "noopener noreferrer";
@@ -668,7 +682,9 @@ $("#sign-filter").addEventListener("click", (e) => {
 
 // ------------------------------------------------------------------ practice
 const P = { running: false, kind: prefs.practiceKind, pool: prefs.practicePool, target: null, tries: 0, correct: 0, streak: 0, wait: 0 };
-const stats = load(STATS_KEY, {});
+let stats = {};
+let statsFor = null;       // the profile `stats` belongs to
+const statsKey = () => `${STATS_KEY}.${profiles ? profiles.current : ""}`;
 const statKey = (kind, item) => `${kind[0]}:${item}`;
 
 function practiceItems(kind, pool) {
@@ -697,6 +713,7 @@ function nextTarget() {
   do { t = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && t === P.target);
   P.target = t;
   P.since = lastEvent;
+  cmd("practice", { on: true, target: P.kind === "words" ? t : null });   // near misses teach the target
   clearTimeout(P.wait);
   const card = $("#practice-target-card");
   card.classList.remove("correct", "wrong");
@@ -763,7 +780,7 @@ function practiceEvent(e) {
     $("#practice-result").textContent = `It saw “${top[0].label}” (${Math.round(top[0].p * 100)}%)`
       + (rank > 0 ? `. Yours was its #${rank + 1} guess, so you're close.` : ". Try again.");
   }
-  store(STATS_KEY, stats);
+  store(statsKey(), stats);
   renderScore();
 }
 
@@ -815,6 +832,120 @@ $("#practice-pool").addEventListener("click", (e) => {
 });
 
 // ------------------------------------------------------------------ toasts
+// ------------------------------------------------------------------ profiles
+const signLabel = (name) => (vocab.find((v) => v.name === name) || { label: name }).label;
+const taughtCount = (kind, name) => (profiles && profiles.counts[kind][name]) || 0;
+
+async function loadProfiles() {
+  shownProfileV = S.profile.v;
+  try { profiles = await (await fetch("/api/profiles")).json(); }
+  catch { return; }
+  if (statsFor !== profiles.current) {
+    // Practice history from before profiles belongs to the first one.
+    const old = profiles.profiles[0] && profiles.current === profiles.profiles[0].id ? load(STATS_KEY, {}) : {};
+    stats = load(statsKey(), old);
+    if (statsFor !== null && P.running) stopPractice();
+    statsFor = profiles.current;
+  }
+  const sel = $("#profile-select");
+  sel.replaceChildren(...profiles.profiles.map((p) => new Option(p.name, p.id)),
+    new Option("New profile…", "__new"));
+  sel.value = profiles.current;
+  const me = profiles.profiles.find((p) => p.id === profiles.current);
+  if (me && document.activeElement !== $("#profile-name")) $("#profile-name").value = me.name;
+  if (prefs.tab === "teach") renderTeach();
+  if (prefs.tab === "practice" && !P.running) renderPracticeSetup();
+  renderSigns();
+}
+
+$("#profile-select").addEventListener("change", (e) => {
+  if (e.target.value === "__new") { e.target.value = profiles.current; return newProfile(); }
+  cmd("profile", { op: "switch", id: e.target.value });
+});
+
+async function newProfile() {
+  const taken = new Set(profiles.profiles.map((p) => p.name));
+  let n = profiles.profiles.length + 1;
+  while (taken.has(`Signer ${n}`)) n += 1;
+  const st = await cmd("profile", { op: "create", name: `Signer ${n}` });
+  if (!st) return;
+  const fresh = await (await fetch("/api/profiles")).json();
+  const p = fresh.profiles.find((x) => x.name === `Signer ${n}`);
+  await cmd("profile", { op: "switch", id: p.id });
+  openSettings();
+  $("#profile-name").select();
+  toast(`Made “${p.name}”. Give it a name, then teach it in the Teach tab.`);
+}
+
+async function deleteProfile() {
+  const me = profiles.profiles.find((p) => p.id === profiles.current);
+  if (profiles.profiles.length < 2) return toast("This is the only profile");
+  toast(`Delete “${me.name}” with its text and taught signs?`, {
+    label: "Delete", fn: async () => {
+      if (await cmd("profile", { op: "delete", id: me.id })) {
+        try { localStorage.removeItem(`${STATS_KEY}.${me.id}`); } catch { /* private window */ }
+        toast(`Deleted “${me.name}”`);
+      }
+    },
+  });
+}
+
+// ------------------------------------------------------------------ teach
+function renderTeachCard() {
+  const t = S.teach;
+  $("#teach-card").hidden = !t;
+  $("#teach-kind").textContent = S.mode;
+  if (prefs.tab === "teach" && $("#teach-list").dataset.mode !== S.mode) renderTeach();
+  if (!t) return;
+  $("#teach-target").textContent = t.kind === "letters" ? t.label : signLabel(t.label);
+  $("#teach-status").textContent = t.kind === "letters"
+    ? (S.hand ? `Hold it still… ${Math.round(t.progress * 100)}%` : "Show your hand, held still, in the camera.")
+    : (S.words.state === "recording" ? "Recording… lower your hands when done." : "Raise your hands, sign it, then lower them.");
+}
+
+function renderTeach() {
+  if (!S) return;
+  const kind = S.mode;
+  const box = $("#teach-list");
+  if (!profiles) return;
+  box.dataset.mode = kind;
+  if (!profiles[kind]) {
+    box.innerHTML = `<li class="empty"><p>The loaded ${kind} model can't be taught (only the landmark letter model and the word model can).</p></li>`;
+    return;
+  }
+  const q = $("#teach-search").value.trim().toLowerCase();
+  const all = kind === "letters" ? LETTERS.map((l) => ({ name: l, label: l })) : vocab;
+  const counts = profiles.counts[kind];
+  const list = all.filter((v) => !q || v.label.toLowerCase().includes(q) || v.name.includes(q))
+    .sort((a, b) => (counts[b.name] ? 1 : 0) - (counts[a.name] ? 1 : 0));
+  const taught = Object.keys(counts).length;
+  $("#teach-summary").textContent = `${taught} of ${all.length} taught`;
+  box.replaceChildren(...list.slice(0, 120).map((v) => {
+    const li = document.createElement("li");
+    li.className = "teach-item";
+    const name = document.createElement("span");
+    name.className = "teach-name"; name.textContent = v.label;
+    const n = counts[v.name] || 0;
+    const chip = document.createElement("span");
+    chip.className = "chip" + (n ? " chip-ok" : "");
+    chip.textContent = n ? `${n} example${n > 1 ? "s" : ""}` : "not taught";
+    const b = document.createElement("button");
+    b.className = "btn btn-sm"; b.dataset.action = "teach"; b.dataset.name = v.name;
+    b.textContent = n ? "Add example" : "Teach";
+    li.append(name, chip, b);
+    if (n) {
+      const f = document.createElement("button");
+      f.className = "icon-btn"; f.dataset.action = "teach-forget"; f.dataset.name = v.name;
+      f.title = `Forget ${v.label}`; f.setAttribute("aria-label", f.title);
+      f.innerHTML = `<svg class="ic"><use href="#i-trash"/></svg>`;
+      li.append(f);
+    }
+    return li;
+  }));
+  if (list.length > 120) box.append(Object.assign(document.createElement("li"), { className: "muted small", textContent: `${list.length - 120} more: search to find them` }));
+}
+$("#teach-search").addEventListener("input", renderTeach);
+
 function toast(message, action) {
   const t = document.createElement("div");
   t.className = "toast";
@@ -870,10 +1001,23 @@ const ACTIONS = {
   resume: () => cmd("pause", { paused: false }),
   "open-settings": openSettings, "close-settings": closeSettings, "close-help": closeHelp,
   "reset-settings": async () => { await cmd("settings", { reset: true }); toast("Recognition settings reset"); },
+  teach: (el) => {
+    if (S.practice) return toast("Stop practice first");
+    cmd("teach", { label: el.dataset.name });
+  },
+  "teach-cancel": () => cmd("teach", { label: null }),
+  "teach-forget": (el) => cmd("forget", { kind: S.mode, label: el.dataset.name }),
+  "teach-forget-all": () => {
+    if (!profiles || !Object.keys(profiles.counts[S.mode]).length) return;
+    toast(`Forget every taught ${S.mode === "letters" ? "letter" : "word"} for this profile?`,
+      { label: "Forget", fn: () => cmd("forget", { kind: S.mode, label: null }) });
+  },
+  "profile-new": newProfile, "profile-delete": deleteProfile,
+  "profile-rename": () => cmd("profile", { op: "rename", id: profiles.current, name: $("#profile-name").value }),
   "practice-start": startPractice, "practice-stop": stopPractice, "practice-skip": () => nextTarget(),
   "practice-reset": () => {
     for (const k of Object.keys(stats)) if (k.startsWith(P.kind[0] + ":")) delete stats[k];
-    store(STATS_KEY, stats);
+    store(statsKey(), stats);
     renderPracticeSetup();
   },
 };

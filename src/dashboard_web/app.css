@@ -360,6 +360,15 @@ kbd {
 .sign .insert span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sign .insert:hover { background: var(--surface-3); }
 .sign .tag { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 5px; background: var(--accent-soft); color: var(--accent-text); flex: none; }
+.sign .tag-taught { background: var(--success-soft); color: var(--success); }
+.teach-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
+.teach-item { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 6px 0 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); }
+.teach-name { flex: 1; min-width: 0; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.teach-item .icon-btn { width: 30px; height: 30px; }
+#teach-card { margin: 10px 0; }
+.profile-pick { display: flex; align-items: center; gap: 6px; margin-left: 14px; color: var(--muted); }
+.profile-pick select { height: 32px; max-width: 150px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); font-weight: 550; }
+.select-row input[type=text] { flex: 1; height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); min-width: 0; }
 .sign a { display: grid; place-items: center; width: 34px; height: 36px; color: var(--muted); border-left: 1px solid var(--border); }
 .sign a:hover { color: var(--accent-text); background: var(--surface-3); }
 .sign a .ic { width: 15px; height: 15px; }

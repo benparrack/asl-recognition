@@ -240,7 +240,8 @@ class WordRecogniser:
         if n_hand < self.p.min_hand_frames:
             event["outcome"] = "too_short"
             return event
-        event["top"] = self.clf.top_k(np.stack(frames), np.asarray(times), self.p.top_k)
+        event["frames"], event["times"] = np.stack(frames), np.asarray(times)   # kept for teaching
+        event["top"] = self.clf.top_k(event["frames"], event["times"], self.p.top_k)
         event["outcome"] = ("accepted" if event["top"][0][1] >= self.p.min_confidence
                             else "low_confidence")
         return event

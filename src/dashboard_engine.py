@@ -18,6 +18,12 @@ added on top is everything a usable tool needs around the raw predictions:
 
 Practice and editing modes still recognise and report events, but add nothing
 to the text.
+
+Each local profile (personal.py) has its own settings, transcript and taught
+examples; the letter and word models are wrapped in personal.Adapter so the
+examples tailor recognition to that signer. Examples come from teaching
+(hold a letter / sign a word on request), from picking another candidate for
+a recognised word, and from near misses in word practice.
 """
 
 from __future__ import annotations
@@ -32,13 +38,15 @@ from types import SimpleNamespace
 
 import cv2
 import numpy as np
+import torch
 
 import config
 from data import holistic_landmarks as hl
 from data.dataset import build_transforms
-from data.landmarks import build_detector
+from data.landmarks import build_detector, normalise_landmarks
 from demo import PredictionSmoother, letters_step, load_model, words_step
 from motion_gate import GateParams, MotionGate, hand_speed_v2, load_motion_classifier
+from personal import LETTER_TAKE_FRAMES, Adapter, ProfileStore, Samples, letter_prototypes
 from words_live import WordClassifier, WordRecogniser, SegParams
 
 STATE_DIR = config.DATA_DIR / "dashboard"
@@ -84,6 +92,7 @@ class Settings:
     words_lull_speed: float = SegParams.lull_speed
     mirror: bool = True
     show_landmarks: bool = True
+    personalise: bool = True
     camera: int = 0
 
 
@@ -322,6 +331,9 @@ class Engine:
         self.state_dir.mkdir(parents=True, exist_ok=True)
 
         self.model, self.kind = load_model(str(letters_checkpoint), self.device)
+        if self.kind == "landmark":                    # pixel models aren't personalised
+            self.model = Adapter(self.model, beta=80, offset=0.9, offset_all=0.5,
+                                 n_classes=len(config.CLASSES)).eval()
         self.detector = build_detector(static_mode=False)
         self.transform = build_transforms(train=False)
         self._args = SimpleNamespace(padding=0.25)        # demo.py's default crop padding
@@ -337,23 +349,25 @@ class Engine:
             import mediapipe as mp
             from evaluate_words import load_word_checkpoint
             wmodel, wckpt = load_word_checkpoint(str(words_checkpoint), self.device)
-            self.words = WordRecogniser(WordClassifier(wmodel, wckpt, self.device), SegParams())
+            self.words = WordRecogniser(WordClassifier(Adapter(wmodel, beta=40, offset=0.3),
+                                                       wckpt, self.device), SegParams())
             self.holistic = mp.solutions.holistic.Holistic(
                 static_image_mode=False, model_complexity=holistic_complexity)
             self.word_classes = list(wckpt["classes"])
             self.models["words"] = f"{Path(words_checkpoint).stem} ({len(self.word_classes)} signs)"
 
-        self.settings = self._load_settings()
+        self.profiles = ProfileStore(self.state_dir)
+        self.settings = Settings()
         self.smoother = PredictionSmoother(self.settings.letters_window,
                                            self.settings.letters_min_confidence)
         self.committer = LetterCommitter(self.settings.letters_hold)
         self.gate = None
-        self._apply_settings()
+        self._wemb: dict[Path, np.ndarray] = {}      # word clip -> embedding, so adding one is cheap
+        self._load_profile(self.profiles.current)
 
-        tf = self.state_dir / "transcript.txt"
-        self.transcript = Transcript(tf.read_text() if tf.exists() else "")
-        self._saved_text = self.transcript.text
-
+        self.teach: dict | None = None               # {"kind", "label", "vecs"} while teaching
+        self.practice_target: str | None = None
+        self._clips: dict[int, tuple] = {}           # last word clips by event id, for corrections
         self.mode = "letters"
         self.paused = self.practice = self.editing = False
         self.letter, self.confidence = None, 0.0
@@ -380,7 +394,7 @@ class Engine:
 
     # ------------------------------------------------------------ settings
     def _load_settings(self) -> Settings:
-        f = self.state_dir / "settings.json"
+        f = self.pdir / "settings.json"
         try:
             return clean_settings(json.loads(f.read_text()), Settings())
         except (OSError, ValueError, AttributeError):
@@ -398,6 +412,9 @@ class Engine:
             params.arm_still_frames = 4            # a hand moving into frame isn't a J/Z
             params.discard_on_exit = True           # ...nor one leaving it
             self.gate = MotionGate(self.motion_clf, params)
+        for m in (self.model, self.words.clf.model if self.words else None):
+            if isinstance(m, Adapter):
+                m.enabled = s.personalise
         if self.words is not None:
             self.words.auto = s.words_auto_segment
             self.words.p.min_confidence = s.words_min_confidence
@@ -405,12 +422,60 @@ class Engine:
 
     def _save(self):
         try:
-            (self.state_dir / "settings.json").write_text(json.dumps(asdict(self.settings), indent=1))
+            (self.pdir / "settings.json").write_text(json.dumps(asdict(self.settings), indent=1))
             if self.transcript.text != self._saved_text:
-                (self.state_dir / "transcript.txt").write_text(self.transcript.text)
+                (self.pdir / "transcript.txt").write_text(self.transcript.text)
                 self._saved_text = self.transcript.text
         except OSError as e:                       # a read-only disk mustn't stop recognition
             print(f"[dashboard] could not save state: {e}")
+
+    # ------------------------------------------------------------ profiles
+    def _load_profile(self, pid: str):
+        self.profile = pid
+        self.pdir = self.profiles.dir(pid)
+        self.settings = self._load_settings()
+        self._apply_settings()
+        tf = self.pdir / "transcript.txt"
+        self.transcript = Transcript(tf.read_text() if tf.exists() else "")
+        self._saved_text = self.transcript.text
+        self.samples = Samples(self.pdir)
+        self.samples_v = getattr(self, "samples_v", 0)
+        self._refresh("letters")
+        self._refresh("words")
+
+    def _refresh(self, kind: str):
+        """Recompute one model's prototypes from the profile's examples."""
+        self.samples_v += 1
+        if kind == "letters" and isinstance(self.model, Adapter):
+            self.model.set_prototypes(letter_prototypes(self.model, self.samples))
+        elif kind == "words" and self.words is not None:
+            clf, protos = self.words.clf, {}
+            for name, files in self.samples.word_files().items():
+                if name not in clf.classes:
+                    continue
+                embs = []
+                for f in files:
+                    if f not in self._wemb:
+                        feats, mask, _ = clf.features(*Samples.load_clip(f))
+                        self._wemb[f] = clf.model.embed(torch.from_numpy(feats)[None].to(self.device),
+                                                        torch.from_numpy(mask)[None].to(self.device))[0].cpu().numpy()
+                    embs.append(self._wemb[f])
+                protos[clf.classes.index(name)] = np.mean(embs, 0)
+            clf.model.set_prototypes(protos)
+
+    def _store_clip(self, label: str, eid: int, source: str) -> Path | None:
+        clip = self._clips.get(eid)
+        if clip is None or label not in self.word_classes:
+            return None
+        f = self.samples.add_word_clip(label, clip[0], clip[1], source)
+        self._refresh("words")
+        return f
+
+    def profile_info(self) -> dict:
+        with self.lock:
+            return {"profiles": self.profiles.list(), "current": self.profile,
+                    "counts": self.samples.counts(), "v": self.samples_v,
+                    "letters": isinstance(self.model, Adapter), "words": self.words is not None}
 
     # ------------------------------------------------------------ events
     def _event(self, **ev) -> dict:
@@ -421,7 +486,7 @@ class Engine:
 
     @property
     def _adding(self) -> bool:
-        return not (self.practice or self.editing)
+        return not (self.practice or self.editing or self.teach)
 
     def _commit_letter(self, letter: str, confidence: float, source: str):
         add = self._adding
@@ -439,6 +504,18 @@ class Engine:
         if top:
             self.candidates, self.candidates_event = top, e["id"]
             self.chosen = 0 if add else -1
+        if "frames" in ev:
+            self._clips[e["id"]] = (ev["frames"], ev["times"], self.chosen, None)
+            for old in [k for k in self._clips if k < e["id"] - 10]:
+                del self._clips[old]
+            names = [c["name"] for c in top]
+            if self.teach and self.teach["kind"] == "words":
+                self._store_clip(self.teach["label"], e["id"], "teach")
+                e["taught"] = self.teach["label"]
+                self.teach = None
+            elif self.practice and self.practice_target in names[1:]:   # a near miss: learn their version
+                self._store_clip(self.practice_target, e["id"], "practice")
+                e["learned"] = self.practice_target
         if add:
             self.transcript.add_word(word_text(top[0]["name"]), e["id"])
 
@@ -463,6 +540,13 @@ class Engine:
             self._commit_letter(gate.event["label"], gate.event["confidence"], "motion")
             self.committer.suppress()
         moving = self._hand_speed(raw, ts, frame.shape[1::-1]) > MOVING_SPEED
+        if self.teach and self.teach["kind"] == "letters" and raw is not None and not moving:
+            self.teach["vecs"].append(normalise_landmarks(raw))
+            if len(self.teach["vecs"]) >= LETTER_TAKE_FRAMES:
+                self.samples.add_letter_take(self.teach["label"], np.stack(self.teach["vecs"]))
+                self._refresh("letters")
+                self._event(kind="taught", label=self.teach["label"])
+                self.teach = None
         fired = self.committer.update(None if self.motion_recording or moving else letter, ts)
         if fired and s.letters_auto_add:
             self._commit_letter(fired, conf, "hold")
@@ -614,6 +698,9 @@ class Engine:
                 "defaults": asdict(Settings()),
                 "cameras": camera_indices(),
                 "models": self.models,
+                "profile": {"id": self.profile, "v": self.samples_v},
+                "teach": self.teach and {"kind": self.teach["kind"], "label": self.teach["label"],
+                                         "progress": len(self.teach.get("vecs", [])) / LETTER_TAKE_FRAMES},
             }
 
     def vocabulary(self) -> list[dict]:
@@ -655,6 +742,7 @@ class Engine:
                 raise ValueError(f"mode {mode!r} not available")
             if mode != self.mode:
                 self.mode = mode
+                self.teach = None
                 self._reset_recognisers()
                 self.pending_space = False
         elif action == "pause":
@@ -662,6 +750,56 @@ class Engine:
             self._reset_recognisers()
         elif action == "practice":
             self.practice = bool(kw.get("on"))
+            target = kw.get("target")
+            self.practice_target = target if self.practice and target in self.word_classes else None
+        elif action == "teach":
+            label = kw.get("label")
+            if label is None:
+                self.teach = None
+            elif self.mode == "letters" and isinstance(self.model, Adapter) and label in config.CLASSES:
+                self.teach = {"kind": "letters", "label": label, "vecs": []}
+            elif self.mode == "words" and label in self.word_classes:
+                self.teach = {"kind": "words", "label": label}
+                self.words.reset()
+            else:
+                raise ValueError("can't teach that sign in this mode")
+        elif action == "forget":
+            kind, label = kw.get("kind"), kw.get("label")
+            if kind not in ("letters", "words") or not (label is None or isinstance(label, str) and label in
+                                                        (config.CLASSES if kind == "letters" else self.word_classes)):
+                raise ValueError("forget needs kind letters/words and a known label or null")
+            self.samples.forget(kind, label)
+            self._wemb.clear()
+            self._refresh(kind)
+        elif action == "profile":
+            op = kw.get("op")
+            if op == "create":
+                pid = self.profiles.create(kw.get("name"))
+            elif op == "rename":
+                self.profiles.rename(kw.get("id"), kw.get("name"))
+                pid = None
+            elif op == "delete":                       # deleting the one in use moves to another
+                others = [p["id"] for p in self.profiles.list() if p["id"] != kw.get("id")]
+                self.profiles.dir(kw.get("id"))
+                if not others:
+                    raise ValueError("can't delete the only profile")
+                pid = others[0] if kw.get("id") == self.profile else None
+                if pid is None:
+                    self.profiles.delete(kw.get("id"))
+            elif op == "switch":
+                pid = kw.get("id")
+            else:
+                raise ValueError("unknown profile op")
+            if pid is not None and pid != self.profile:
+                self._save()
+                self.profiles.current = pid
+                self.teach, self._clips, self.candidates = None, {}, []
+                self.events.clear()
+                self._load_profile(pid)
+                self._reset_recognisers()
+                if op == "delete":
+                    self.profiles.delete(kw.get("id"))
+            self.samples_v += 1
         elif action == "editing":
             self.editing = bool(kw.get("on"))
         elif action == "settings":
@@ -693,6 +831,17 @@ class Engine:
             if not t.replace_last_word(word, self.candidates_event):
                 t.add_word(word, self.candidates_event)
             self.chosen = i
+            clip = self._clips.get(self.candidates_event)
+            if clip is not None:                         # learn from the pick; a re-pick replaces it
+                frames, times, first, stored = clip
+                if stored is not None:
+                    stored.unlink(missing_ok=True)
+                    self._wemb.pop(stored, None)
+                    stored = None
+                    self._refresh("words")
+                if i != first:
+                    stored = self._store_clip(self.candidates[i]["name"], self.candidates_event, "correction")
+                self._clips[self.candidates_event] = (frames, times, first, stored)
         elif action == "insert_word":
             name = kw.get("name")
             if name not in self.word_classes:

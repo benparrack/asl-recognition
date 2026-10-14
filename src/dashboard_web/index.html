@@ -44,6 +44,7 @@
     <symbol id="i-camera-off" viewBox="0 0 24 24"><path d="M2 2l20 20"/><path d="M15 9.3V7a2 2 0 00-2-2H8.7M4.2 5.2A2 2 0 003 7v10a2 2 0 002 2h8a2 2 0 001.8-1.2M15 13l6 4V7l-6 4"/></symbol>
     <symbol id="i-record" viewBox="0 0 24 24"><circle fill="currentColor" stroke="none" cx="12" cy="12" r="6"/></symbol>
     <symbol id="i-stop" viewBox="0 0 24 24"><rect fill="currentColor" stroke="none" x="6.5" y="6.5" width="11" height="11" rx="2"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></symbol>
     <symbol id="i-hand" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 00-4 0v5M14 10V4a2 2 0 00-4 0v6M10 10.5V6a2 2 0 00-4 0v8a8 8 0 0016 0v-2a2 2 0 00-4 0"/></symbol>
     <symbol id="i-fullscreen" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 00-2 2v3M21 8V5a2 2 0 00-2-2h-3M3 16v3a2 2 0 002 2h3M16 21h3a2 2 0 002-2v-3"/></symbol>
   </defs>
@@ -55,6 +56,10 @@
   <div class="brand">
     <span class="brand-mark"><svg class="ic"><use href="#i-logo"/></svg></span>
     <span class="brand-name">SignDesk</span>
+    <label class="profile-pick" title="Signer profile: its settings, text and taught signs">
+      <svg class="ic"><use href="#i-user"/></svg>
+      <select id="profile-select" aria-label="Signer profile"></select>
+    </label>
   </div>
 
   <div class="segmented" role="radiogroup" aria-label="Recognition mode" id="mode-switch">
@@ -217,6 +222,7 @@
         <button role="tab" id="tab-activity" aria-controls="panel-activity" aria-selected="true"><svg class="ic"><use href="#i-activity"/></svg>Activity</button>
         <button role="tab" id="tab-signs" aria-controls="panel-signs" aria-selected="false"><svg class="ic"><use href="#i-book"/></svg>Signs</button>
         <button role="tab" id="tab-practice" aria-controls="panel-practice" aria-selected="false"><svg class="ic"><use href="#i-target"/></svg>Practice</button>
+        <button role="tab" id="tab-teach" aria-controls="panel-teach" aria-selected="false"><svg class="ic"><use href="#i-hand"/></svg>Teach</button>
       </div>
 
       <div class="panel" role="tabpanel" id="panel-activity" aria-labelledby="tab-activity">
@@ -281,6 +287,23 @@
           </div>
         </div>
       </div>
+
+      <div class="panel" role="tabpanel" id="panel-teach" aria-labelledby="tab-teach" hidden>
+        <p class="lead">Show SignDesk how you sign. Each example tailors the <span id="teach-kind">letters</span> model to this profile, straight away. Picking another match for a recognised word, and near misses in practice, teach it too.</p>
+        <div class="target" id="teach-card" hidden>
+          <div class="target-label">Teaching</div>
+          <div class="target-word" id="teach-target">–</div>
+          <div class="target-result" id="teach-status" role="status"></div>
+          <button class="btn btn-ghost btn-sm" data-action="teach-cancel">Cancel</button>
+        </div>
+        <div class="search">
+          <svg class="ic"><use href="#i-search"/></svg>
+          <input type="search" id="teach-search" placeholder="Search" aria-label="Search signs to teach" autocomplete="off">
+          <span class="muted small" id="teach-summary"></span>
+        </div>
+        <ul class="teach-list" id="teach-list"></ul>
+        <p class="muted small hint-line">Three examples of a sign is plenty; the newest are kept. <button class="btn btn-ghost btn-sm" data-action="teach-forget-all">Forget all</button></p>
+      </div>
     </div>
   </section>
 </main>
@@ -298,6 +321,17 @@
     <button class="icon-btn" data-action="close-settings" aria-label="Close settings"><svg class="ic"><use href="#i-close"/></svg></button>
   </div>
   <div class="drawer-body">
+    <section class="settings-group">
+      <h3>Profile</h3>
+      <div class="select-row"><input type="text" id="profile-name" maxlength="40" aria-label="Profile name" autocomplete="off">
+        <button class="btn btn-sm" data-action="profile-rename">Rename</button></div>
+      <label class="switch-row"><span>Use what this profile taught<small>Off: the models exactly as trained, to compare.</small></span><input type="checkbox" class="switch" data-setting="personalise"></label>
+      <div class="row-buttons">
+        <button class="btn btn-sm" data-action="profile-new"><svg class="ic"><use href="#i-user"/></svg>New profile</button>
+        <button class="btn btn-sm btn-ghost" data-action="profile-delete"><svg class="ic"><use href="#i-trash"/></svg>Delete this profile</button>
+      </div>
+    </section>
+
     <section class="settings-group">
       <h3>Letters</h3>
       <label class="switch-row"><span>Add letters automatically<small>Hold a letter steady to add it. Off: press Enter.</small></span><input type="checkbox" class="switch" data-setting="letters_auto_add"></label>

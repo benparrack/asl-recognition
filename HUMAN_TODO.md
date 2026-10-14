@@ -19,7 +19,17 @@ Ctrl+Z), or press E to edit it directly. Copy, read aloud, download, captions
 view (V), light/dark theme, text size/case/font. The Signs tab lists all 250
 words with links to how they're signed; the Practice tab prompts signs and
 tracks which ones you miss (good for the two-handed ones). Press H for all
-shortcuts. Settings and text are saved in data/dashboard/ (gitignored).
+shortcuts.
+
+Profiles (2026-10-14): the picker next to the logo switches signer; each
+profile has its own settings, text and taught signs, saved under
+data/dashboard/profiles/ (gitignored; your old settings and text became the
+"Me" profile). The Teach tab tailors the models to that signer: hold a letter
+still for ~1 s, or sign the prompted word once. Picking match 2 or 3 for a
+word, and near misses in word practice, also teach. One example per word took
+your clips from 0.76 to ~0.93 offline; taught signs then show near 100%
+confidence, which is the boost, not certainty. Settings → "Use what this
+profile taught" turns it off to compare.
 
 ## 0. Word model trained on GISLR + ASL Citizen: try it live (2026-10-12)
 

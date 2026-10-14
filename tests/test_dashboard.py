@@ -12,7 +12,11 @@ import numpy as np
 import pytest
 
 import config
+import torch
+import torch.nn as nn
+
 from dashboard_engine import LetterCommitter, Settings, Transcript, clean_settings
+from personal import Adapter, ProfileStore, Samples
 
 
 def test_transcript_letters_words_and_punctuation():
@@ -106,6 +110,43 @@ def test_clean_settings_coerces_clamps_and_ignores_junk():
     assert s.mirror is base.mirror               # non-bool ignored
     assert s.letters_min_confidence == base.letters_min_confidence
     assert not hasattr(s, "evil")
+
+
+def test_adapter_boosts_only_signs_close_to_their_prototype():
+    torch.manual_seed(0)
+    model = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 3)).eval()
+    a = Adapter(model, beta=40, offset=0.3)
+    x = torch.randn(5, 4)
+    assert torch.equal(a(x), model(x))                       # nothing taught: untouched
+    a.set_prototypes({2: a.embed(x[:1])[0].numpy()})
+    out = a(x)
+    assert out[0].argmax() == 2                              # the taught example itself
+    base = torch.log_softmax(model(x), 1)
+    assert torch.allclose(out[:, :2], base[:, :2])           # untaught classes unchanged
+    assert (out[:, 2] >= base[:, 2] - 1e-6).all()
+    a.enabled = False
+    assert torch.equal(a(x), model(x))
+
+
+def test_profiles_migrate_old_state_and_keep_examples_apart(tmp_path):
+    (tmp_path / "transcript.txt").write_text("hello ")
+    store = ProfileStore(tmp_path)
+    (me,) = store.list()
+    assert (tmp_path / "profiles" / me["id"] / "transcript.txt").read_text() == "hello "
+    other = store.create("Sam  Lee")
+    assert other == "sam-lee" and store.create("Sam Lee") == "sam-lee-2"
+    for bad in ("../x", "nope", None):
+        with pytest.raises(ValueError):
+            store.dir(bad)
+    a, b = Samples(store.dir(me["id"])), Samples(store.dir(other))
+    for _ in range(7):
+        a.add_letter_take("A", np.zeros((3, 63)))
+    a.add_word_clip("pencil", np.zeros((4, 84, 3)), np.arange(4) / 30, "teach")
+    assert a.counts() == {"letters": {"A": 5}, "words": {"pencil": 1}}   # capped at 5 takes
+    assert Samples(store.dir(me["id"])).counts() == a.counts()         # reloads from disk
+    assert b.counts() == {"letters": {}, "words": {}}
+    a.forget("letters", "A")
+    assert a.counts()["letters"] == {}
 
 
 # ---------------------------------------------------------------- server
@@ -211,5 +252,40 @@ def test_server_commands_edit_transcript_and_practice_does_not_add(server):
 
     st = post(url, {"action": "settings", "values": {"letters_hold": 1.2}})
     assert st["settings"]["letters_hold"] == 1.2
-    assert (engine.state_dir / "settings.json").exists()
+    assert (engine.pdir / "settings.json").exists()
     assert post(url, {"action": "mode", "mode": "words"})["mode"] == "words"
+
+
+def test_server_profiles_corrections_and_teaching_stay_per_profile(server):
+    engine, url = server
+    info = json.load(urllib.request.urlopen(url + "/api/profiles", timeout=10))
+    first = info["current"]
+    rng = np.random.default_rng(0)
+    frames = rng.random((30, 84, 3)).astype(np.float32)
+    ev = dict(outcome="accepted", reason="lull", duration=1.0, top=[("pen", 0.6), ("pencil", 0.3)],
+              frames=frames, times=np.arange(30) / 30)
+    with engine.cond:
+        engine._word_event(ev)
+    post(url, {"action": "choose", "index": 1})              # a correction: stored as pencil
+    post(url, {"action": "choose", "index": 1})              # picking again doesn't duplicate it
+    info = json.load(urllib.request.urlopen(url + "/api/profiles", timeout=10))
+    assert info["counts"]["words"] == {"pencil": 1}
+    # The same clip now leans to pencil.
+    assert engine.words.clf.top_k(frames, ev["times"])[0][0] == "pencil"
+
+    post(url, {"action": "profile", "op": "create", "name": "Guest"})
+    st = post(url, {"action": "profile", "op": "switch", "id": "guest"})
+    assert st["profile"]["id"] == "guest" and st["transcript"]["text"] == ""
+    assert json.load(urllib.request.urlopen(url + "/api/profiles", timeout=10))["counts"]["words"] == {}
+    post(url, {"action": "mode", "mode": "words"})
+    post(url, {"action": "teach", "label": "book"})
+    with engine.cond:
+        engine._word_event(dict(ev, outcome="rejected"))
+    assert engine.teach is None and engine.samples.counts()["words"] == {"book": 1}
+    with pytest.raises(urllib.error.HTTPError):
+        post(url, {"action": "teach", "label": "A"})          # a letter in words mode
+    st = post(url, {"action": "profile", "op": "delete", "id": "guest"})   # the one in use
+    assert st["profile"]["id"] == first and not (engine.profiles.root / "guest").exists()
+    assert engine.samples.counts()["words"] == {"pencil": 1}
+    with pytest.raises(urllib.error.HTTPError):
+        post(url, {"action": "profile", "op": "delete", "id": first})     # the only one left
