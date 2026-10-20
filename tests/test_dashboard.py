@@ -330,3 +330,7 @@ def test_traced_j_is_added_once_after_its_end_is_held(tmp_path, monkeypatch):
     run(3.4, 3.5, None, raw=None)                # Z not held: dropped
     run(3.5, 4.5, "D")
     assert engine.transcript.text == "JD"
+    run(4.5, 4.7, None, raw=None)
+    run(4.7, 5.0, "P", {**j, "label": "Z"})      # twisting P -> Q reads as a Z trace...
+    run(5.0, 6.0, "Q")                           # ...but it ends on Q: Q, not Z
+    assert engine.transcript.text == "JDQ"

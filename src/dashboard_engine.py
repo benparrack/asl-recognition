@@ -57,6 +57,10 @@ MOVING_SPEED = 0.8
 # A traced J/Z has this long (plus the hold time) to be held still at its end,
 # or it's dropped: a stray trace mid-spelling shouldn't land on the next hold.
 MOTION_HOLD_WINDOW = 2.0
+# What the static model reads the end of each motion letter as (Ben's motion_v2
+# clips: J ends I or unsure, Z ends X 89%). Any other confident letter means it
+# wasn't a J/Z, e.g. the wrist twist of switching between P and Q.
+MOTION_END_SHAPES = {"J": {"I"}, "Z": {"X", "D"}}
 
 # GISLR sign names that aren't plain words: (label shown, text added).
 WORD_FORMS = {
@@ -545,7 +549,8 @@ class Engine:
             self.motion_pending = (gate.event["label"], gate.event["confidence"], ts)
         moving = self._hand_speed(raw, ts, frame.shape[1::-1]) > MOVING_SPEED
         mp = self.motion_pending
-        if mp and (raw is None or ts - mp[2] > MOTION_HOLD_WINDOW + s.letters_hold):
+        if mp and (raw is None or ts - mp[2] > MOTION_HOLD_WINDOW + s.letters_hold
+                   or letter not in MOTION_END_SHAPES.get(mp[0], set()) | {None, mp[0]}):
             self.motion_pending = mp = None
         if mp:                                         # hold the end of the J/Z, like a static letter
             self.letter, self.confidence = mp[0], mp[1]
