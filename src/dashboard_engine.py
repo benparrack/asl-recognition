@@ -29,6 +29,7 @@ a recognised word, and from near misses in word practice.
 
 from __future__ import annotations
 
+import csv
 import json
 import threading
 import time
@@ -74,6 +75,9 @@ WORD_FORMS = {
     "thankyou": ("thank you", "thank you"),
     "weus": ("we / us", "we"),
 }
+# ASL Citizen names are glued glosses too (lookforward, dontknow); reviewed forms
+with open(Path(__file__).with_name("word_forms.csv"), newline="") as _f:
+    WORD_FORMS.update({r["name"]: (r["label"], r["text"]) for r in csv.DictReader(_f)})
 
 
 def word_label(name: str) -> str:
@@ -169,19 +173,22 @@ class Transcript:
     def move_cursor(self, pos: int | None):
         self.cursor = None if pos is None or pos >= len(self.text) else max(0, pos)
 
-    def _sep(self) -> str:
-        return "" if not self.text or self.text[-1] in " \n" else " "
-
     def add_letter(self, ch: str):
         self._push()
         self.text += ch
         self.last = self.cursor = None
 
+    def _place(self, head: str, word: str, event_id: int):
+        if word in ".,?!":                              # a sign like QM types "?": hug the word before
+            head = head.rstrip(" ")
+        elif head and head[-1] not in " \n":
+            head += " "
+        self.text = head + word + " "
+        self.last = (len(head), word, event_id)
+
     def add_word(self, word: str, event_id: int = -1):
         self._push()
-        self.text += self._sep()
-        self.last = (len(self.text), word, event_id)
-        self.text += word + " "
+        self._place(self.text, word, event_id)
         self.cursor = None
 
     def replace_last_word(self, word: str, event_id: int) -> bool:
@@ -193,8 +200,7 @@ class Transcript:
         if self.text[start:] != old + " ":
             return False
         self._push()
-        self.text = self.text[:start] + word + " "
-        self.last = (start, word, event_id)
+        self._place(self.text[:start], word, event_id)
         return True
 
     def space(self, at_end: bool = False):
@@ -725,13 +731,14 @@ class Engine:
 
     def vocabulary(self) -> list[dict]:
         # The GISLR properties file has nondom_frac 0 for every sign (no second
-        # hand in its cache), so two-handedness comes from ASL Citizen; signs
-        # outside its 216 count as one-handed.
+        # hand in its cache), so two-handedness comes from ASL Citizen (all of
+        # it if extracted, else its 216 GISLR signs); other signs count as one-handed.
         two = {}
-        props = config.RESULTS_DIR / "words_sign_properties_asl_citizen.csv"
-        if props.exists():
-            import pandas as pd
-            two = dict(pd.read_csv(props)[["sign", "two_handed"]].itertuples(index=False))
+        for name in ("words_sign_properties_asl_citizen.csv", "words_sign_properties_asl_citizen_all.csv"):
+            props = config.RESULTS_DIR / name
+            if props.exists():
+                import pandas as pd
+                two.update(pd.read_csv(props)[["sign", "two_handed"]].itertuples(index=False))
         return [dict(name=n, label=word_label(n), text=word_text(n), two_handed=bool(two.get(n, False)))
                 for n in self.word_classes]
 

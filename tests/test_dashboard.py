@@ -51,6 +51,15 @@ def test_transcript_swap_last_word_only_while_it_is_last():
     assert t.text == "pencil A"
 
 
+def test_transcript_punctuation_word_hugs_the_word_before():
+    t = Transcript()
+    t.add_word("where", 1)
+    t.add_word("?", 2)                          # the QM sign
+    assert t.text == "where? "
+    assert t.replace_last_word("this", 2) and t.text == "where this "
+    assert t.replace_last_word("!", 2) and t.text == "where! "
+
+
 def test_transcript_undo_redo():
     t = Transcript()
     t.add_word("a")
