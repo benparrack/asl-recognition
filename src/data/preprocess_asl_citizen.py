@@ -27,13 +27,15 @@ laptop throttles), so all 83k videos take 13+ h. --max-fps 15 halves that: the
 frames are resampled to 30 fps anyway, and some clips are 15 fps already.
 --vocab gislr (the default) keeps only glosses that are GISLR signs (~216 signs,
 ~8k videos, ~1.5 h) and names them as GISLR does, so the two datasets share
-sign names; --vocab all keeps every gloss lower-cased. `label` is the sign's
+sign names; --vocab all keeps every gloss too (~2,299 signs once variants are
+merged), named as GISLR does where GISLR has it, else lower-case letters only. `label` is the sign's
 index among the kept signs in sorted order.
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import tempfile
 import time
@@ -60,8 +62,19 @@ GISLR_ALIASES = {"dad": "FATHER", "mom": "MOTHER", "shoe": "SHOES", "eye": "EYES
                  "minemy": "MINE"}
 
 
+# --vocab all: glosses whose digits are part of the word, not a variant number
+ASLC_NAMES = {"1DOLLAR": "onedollar", "5DOLLARS": "fivedollars", "8HOUR": "eighthours",
+              "9OCLOCK": "nineoclock", "STAYAWAKE24HRS": "stayawake"}
+
+
 def norm(s: str) -> str:
     return "".join(c for c in s.lower() if c.isalpha())
+
+
+def aslc_name(gloss: str) -> str:
+    """Sign name for a gloss GISLR doesn't have: variants (DRINK1/DRINK2) and
+    classifier forms (SKI-CA, WALK-TIGHTROPE-CL) merge with the plain word."""
+    return ASLC_NAMES.get(gloss) or norm(re.sub(r"-C[AL]$", "", gloss))
 
 
 def gislr_names(glosses, gislr_signs) -> dict[str, str]:
@@ -70,7 +83,7 @@ def gislr_names(glosses, gislr_signs) -> dict[str, str]:
     return {gl: by_norm[norm(gl)] for gl in glosses if norm(gl) in by_norm}
 
 
-def read_splits(zf: zipfile.ZipFile, gislr_signs=None) -> pd.DataFrame:
+def read_splits(zf: zipfile.ZipFile, gislr_signs, all_glosses: bool = False) -> pd.DataFrame:
     parts = []
     for split in ("train", "val", "test"):
         with zf.open(f"{PREFIX}splits/{split}.csv") as f:
@@ -80,11 +93,10 @@ def read_splits(zf: zipfile.ZipFile, gislr_signs=None) -> pd.DataFrame:
     df["participant_id"] = df["participant"].str.lstrip("P").astype(int)
     if (df.groupby("participant_id")["split"].nunique() > 1).any():
         raise ValueError("a participant appears in more than one official split")
-    if gislr_signs is None:
-        df["sign"] = df["gloss"].str.lower()
-    else:
-        df["sign"] = df["gloss"].map(gislr_names(df["gloss"].unique(), gislr_signs))
-        df = df.dropna(subset=["sign"]).reset_index(drop=True)
+    df["sign"] = df["gloss"].map(gislr_names(df["gloss"].unique(), gislr_signs))
+    if all_glosses:                                    # GISLR's name where it has the sign
+        df["sign"] = df["sign"].fillna(df["gloss"].map(aslc_name))
+    df = df.dropna(subset=["sign"]).reset_index(drop=True)
     classes = sorted(df["sign"].unique())
     df["label"] = df["sign"].map({s: i for i, s in enumerate(classes)})
     return df
@@ -148,8 +160,8 @@ def main() -> None:
     args = parser.parse_args()
 
     with zipfile.ZipFile(args.zip) as zf:
-        df = read_splits(zf, None if args.vocab == "all" else
-                         sorted(pd.read_csv(args.gislr_index)["sign"].unique()))
+        df = read_splits(zf, sorted(pd.read_csv(args.gislr_index)["sign"].unique()),
+                         all_glosses=args.vocab == "all")
     shards = plan_shards(df, args.shard_size)
     args.cache_dir.mkdir(parents=True, exist_ok=True)
     todo = [s for s in shards if not (args.cache_dir / f"{s}.csv").exists()][:args.limit]

@@ -52,17 +52,17 @@ EXTRA_PID_OFFSET = 100_000   # keeps extra-dataset participant ids apart from GI
 
 def load_combined_index(cache_dir: Path, extra_cache_dir: Path) -> tuple[pd.DataFrame, list[str]]:
     """
-    GISLR plus a second cache (preprocess_asl_citizen.py --vocab gislr) in
-    GISLR's label space. Extra rows keep their own signer split, take the
-    GISLR label of their sign name, and get participant_id + EXTRA_PID_OFFSET.
+    GISLR plus a second cache (preprocess_asl_citizen.py) in one label space:
+    GISLR's signs keep labels 0..249 and signs only the extra cache has
+    (--vocab all) follow in sorted order, so a GISLR label means the same sign
+    in every checkpoint. Extra rows keep their own signer split and get
+    participant_id + EXTRA_PID_OFFSET.
     `shard` becomes an absolute path, so WordDataset/load_sequence read either
     cache whatever cache_dir they're given. `dataset` says which one a row is.
     """
     index, classes = load_word_index(cache_dir)
     extra, _ = load_word_index(extra_cache_dir)
-    unknown = set(extra["sign"]) - set(classes)
-    if unknown:
-        raise ValueError(f"{extra_cache_dir}: signs not in GISLR: {sorted(unknown)[:10]}")
+    classes = classes + sorted(set(extra["sign"]) - set(classes))
     index = index.assign(dataset="gislr", shard=[str(Path(cache_dir).resolve() / s)
                                                 for s in index["shard"]])
     extra = extra.assign(dataset=Path(extra_cache_dir).name,

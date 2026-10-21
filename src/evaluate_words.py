@@ -117,7 +117,7 @@ def breakdowns(y, y_pred, props: pd.DataFrame) -> dict:
         out[col] = {str(g): {"acc": float(correct[groups == g].mean()),
                              "n": int((groups == g).sum()),
                              "n_signs": int((p[col] == g).sum())}
-                    for g in pd.unique(groups)}
+                    for g in pd.unique(groups) if pd.notna(g)}   # signs without train rows have no properties
     return out
 
 
@@ -143,7 +143,7 @@ def evaluate_split(model, ckpt, index, split, cache_dir, device, props, batch_si
         "default_guess_sinks": default_guess_sinks(cm, classes),
         "breakdowns": breakdowns(y, y_pred, props),
     }
-    if fig_path is not None:
+    if fig_path is not None and len(classes) <= 300:    # past that it's an unreadable smear
         plot_confusion_matrix(cm, classes, fig_path, annotate_threshold=1.1)
         report["confusion_figure"] = str(fig_path)
     return report

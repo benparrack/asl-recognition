@@ -173,3 +173,27 @@ def test_combined_index_and_training_with_extra_cache(synthetic_words, tmp_path)
     ck = torch.load(out / "words_transformer_full_x_best.pt", weights_only=False)
     assert set(ck["val_acc_by_dataset"]) == {"gislr", "extra_ds"}
     assert ck["val_acc"] == pytest.approx(np.mean(list(ck["val_acc_by_dataset"].values())))
+
+
+def test_combined_index_appends_signs_only_the_extra_cache_has(synthetic_words, tmp_path):
+    import shutil
+
+    import pandas as pd
+
+    from data.word_dataset import load_combined_index
+
+    cache, _, _ = synthetic_words
+    extra = tmp_path / "extra_ds"
+    shutil.copytree(cache, extra)
+    idx = pd.read_csv(extra / "index.csv")
+    first = idx["sign"].iloc[0]
+    idx["sign"] = idx["sign"].replace(first, "aaa_new")   # sorts first, must still go last
+    idx.to_csv(extra / "index.csv", index=False)
+
+    combined, classes = load_combined_index(cache, extra)
+    _, gislr_classes = load_word_index(cache)
+    assert classes == gislr_classes + ["aaa_new"]
+    ex = combined[combined["dataset"] == "extra_ds"]
+    assert (ex.loc[ex["sign"] == "aaa_new", "label"] == len(gislr_classes)).all()
+    assert (ex.loc[ex["sign"] != "aaa_new", "sign"].map(classes.index)
+            == ex.loc[ex["sign"] != "aaa_new", "label"]).all()

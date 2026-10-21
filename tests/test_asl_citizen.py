@@ -49,3 +49,10 @@ def test_gislr_names_matches_forms_and_aliases():
     got = gislr_names(["THANKYOU", "FATHER", "TV", "CALL1", "SHOES"],
                       ["thankyou", "dad", "tv", "callonphone", "shoe"])
     assert got == {"THANKYOU": "thankyou", "FATHER": "dad", "TV": "tv", "SHOES": "shoe"}
+
+
+def test_aslc_name_merges_variants_but_keeps_word_digits():
+    from data.preprocess_asl_citizen import aslc_name
+    assert [aslc_name(g) for g in ["DRINK2", "SKI-CA", "WALK-TIGHTROPE-CL", "HURDLE/TRIP1",
+                                   "1DOLLAR", "9OCLOCK", "CHEW2MOUTH"]] == \
+        ["drink", "ski", "walktightrope", "hurdletrip", "onedollar", "nineoclock", "chewmouth"]
