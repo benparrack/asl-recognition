@@ -343,3 +343,7 @@ def test_traced_j_is_added_once_after_its_end_is_held(tmp_path, monkeypatch):
     run(4.7, 5.0, "P", {**j, "label": "Z"})      # twisting P -> Q reads as a Z trace...
     run(5.0, 6.0, "Q")                           # ...but it ends on Q: Q, not Z
     assert engine.transcript.text == "JDQ"
+    run(6.0, 6.2, None, raw=None)
+    run(6.2, 6.5, None, {**j, "label": "Z"})     # a Z trace the static model can't confirm...
+    run(6.5, 9.5, None)                          # ...never ends on X/D: dropped, not added
+    assert engine.transcript.text == "JDQ" and engine.motion_pending is None

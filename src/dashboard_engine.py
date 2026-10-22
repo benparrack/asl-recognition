@@ -59,9 +59,10 @@ MOVING_SPEED = 0.8
 # or it's dropped: a stray trace mid-spelling shouldn't land on the next hold.
 MOTION_HOLD_WINDOW = 2.0
 # What the static model reads the end of each motion letter as (Ben's motion_v2
-# clips: J ends I or unsure, Z ends X 89%). Any other confident letter means it
-# wasn't a J/Z, e.g. the wrist twist of switching between P and Q.
-MOTION_END_SHAPES = {"J": {"I"}, "Z": {"X", "D"}}
+# clips: J ends I or unsure, Z ends X 89%). A pending J/Z only counts towards
+# its hold while one of these is seen; any other confident letter drops it, e.g.
+# the wrist twist of switching between P and Q.
+MOTION_END_SHAPES = {"J": {"I", None}, "Z": {"X", "D"}}
 
 # GISLR sign names that aren't plain words: (label shown, text added).
 WORD_FORMS = {
@@ -426,6 +427,7 @@ class Engine:
             params = GateParams.for_classifier(self.motion_clf, min_confidence=s.letters_min_confidence)
             params.arm_still_frames = 4            # a hand moving into frame isn't a J/Z
             params.discard_on_exit = True           # ...nor one leaving it
+            params.hold_seconds = 0.0               # keep static running so the end shape is checked
             self.gate = MotionGate(self.motion_clf, params)
         for m in (self.model, self.words.clf.model if self.words else None):
             if isinstance(m, Adapter):
@@ -560,7 +562,7 @@ class Engine:
             self.motion_pending = mp = None
         if mp:                                         # hold the end of the J/Z, like a static letter
             self.letter, self.confidence = mp[0], mp[1]
-            letter = mp[0]
+            letter = mp[0] if letter in MOTION_END_SHAPES[mp[0]] else None
         if self.teach and self.teach["kind"] == "letters" and raw is not None and not moving:
             self.teach["vecs"].append(normalise_landmarks(raw))
             if len(self.teach["vecs"]) >= LETTER_TAKE_FRAMES:
