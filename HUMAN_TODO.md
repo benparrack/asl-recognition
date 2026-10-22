@@ -31,6 +31,14 @@ your clips from 0.76 to ~0.93 offline; taught signs then show near 100%
 confidence, which is the boost, not certainty. Settings → "Use what this
 profile taught" turns it off to compare.
 
+## Paused: full ASL Citizen vocabulary (2,297 signs), 136/434 shards (2026-10-22)
+
+Resume with `logs/aslc_resume.sh` (~10 h of extraction with the lid open, 14
+workers; 18 runs out of RAM). It then trains two word models, scores your
+clips, and deletes `data/external/asl_citizen/ASL_Citizen.zip` (43 GB) only
+after checking that the finished cache loads. Stop again with
+`systemctl --user stop aslc-zip-cleanup words-all aslc-all`; finished shards are kept.
+
 ## 0. Word model trained on GISLR + ASL Citizen: try it live (2026-10-12)
 
 `checkpoints/words_transformer_full_aslc_r3_best.pt` is the current word model
