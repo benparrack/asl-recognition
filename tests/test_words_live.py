@@ -166,15 +166,15 @@ def test_short_blips_are_discarded_not_classified(live):
 
 
 def test_held_pose_does_not_retrigger(live):
-    """A motion-lull ending with the hands still up must not start a new clip
-    until the hands drop or move again."""
+    """Hands held still from the start: never moved, so no motion-lull end
+    (that's the hold before a sign), and no new clip after max_frames."""
     clf, val, cache, _ = live
     _, body = _with_rest(load_sequence(cache, val.iloc[0]))
     frame = next(f for f in body if not np.isnan(f[hl.RIGHT_HAND]).any())
     still = np.repeat(frame[None], 150, axis=0)
     rec = WordRecogniser(clf)
     events = replay(rec, selected_to_raw(still), len(still))
-    assert [e["reason"] for e in events] == ["motion_lull"]
+    assert [e["reason"] for e in events] == ["max_frames"]
 
 
 def test_personal_video_scorer_matches_offline(live):

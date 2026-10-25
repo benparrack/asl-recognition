@@ -27,11 +27,15 @@ sign out of a continuous stream. Two ways, in order of robustness:
           (cv2 has no key-up event, so it's a toggle, not hold-to-record).
   auto    idle --(a hand raised into the signing space for start_frames)--> recording
           recording --(no raised hand for end_absent frames)
-                    or (>= min_frames AND hand speed below lull_speed for lull_frames)
+                    or (>= min_frames AND the hands have moved AND hand speed
+                        below lull_speed for lull_frames)
                     or (max_frames)--> classify
           After a clip ends in a motion lull with the hands still up, auto
           start is disarmed until the hands drop or move again. Otherwise a
-          held final handshape would retrigger at once.
+          held final handshape would retrigger at once. "Moved" (speed above
+          2 x lull_speed for 3 frames) keeps the still hold before a sign from
+          counting as its end: on Ben's clips that hold was cut off as its own
+          0.5 s "sign" in 13 of the 19 clips auto mode got wrong.
 
 "Raised" means a hand is detected with its wrist above shoulder height plus
 rest_drop shoulder-widths (hands in the lap or at the sides are resting). If
@@ -213,7 +217,7 @@ class WordRecogniser:
         self.history: deque = deque(maxlen=self.p.pre_roll)
         self.prev, self.prev_t = None, None
         self.raised_streak = self.absent_streak = self.lull_streak = self.move_streak = 0
-        self.armed = True
+        self.armed, self.moved = True, False
 
     # ------------------------------------------------------------ manual
     def toggle(self, t: float) -> dict | None:
@@ -247,10 +251,11 @@ class WordRecogniser:
         elif self.state == "recording":
             self._append(frame, t)
             self.lull_streak = self.lull_streak + 1 if speed < self.p.lull_speed else 0
+            self.moved = self.moved or self.move_streak >= 3
             n = len(self.clip.frames)
             if self.absent_streak >= self.p.end_absent:
                 event = self._close("hands_down")
-            elif n >= self.p.min_frames and self.lull_streak >= self.p.lull_frames:
+            elif n >= self.p.min_frames and self.moved and self.lull_streak >= self.p.lull_frames:
                 event = self._close("motion_lull")
                 self.armed = False
             elif n >= self.p.max_frames:
@@ -258,7 +263,7 @@ class WordRecogniser:
                 self.armed = False
         elif (self.auto and self.armed and raised
               and self.raised_streak >= self.p.start_frames):
-            self.state, self.lull_streak = "recording", 0
+            self.state, self.lull_streak, self.moved = "recording", 0, False
             self.clip = _Clip(frames=[f for f, _ in self.history],
                               times=[s for _, s in self.history])
             self._append(frame, t)

@@ -6,10 +6,10 @@
       "top3": 0.86
     },
     "auto": {
-      "top1": 0.57,
-      "top3": 0.73
+      "top1": 0.75,
+      "top3": 0.87
     },
-    "auto_single_event_frac": 0.7,
+    "auto_single_event_frac": 0.86,
     "n_files": 100,
     "n_signs": 20
   },
@@ -88,26 +88,26 @@
       },
       "auto": {
         "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4658591774257953,
+        "n_frames": 58,
+        "n_hand_frames": 58,
+        "duration": 1.896712365233595,
         "top": [
           [
-            "address",
-            0.2072683572769165
-          ],
-          [
-            "lift",
-            0.15167547762393951
-          ],
-          [
             "bath",
-            0.08957377076148987
+            0.9955319166183472
+          ],
+          [
+            "address",
+            0.0007255510427057743
+          ],
+          [
+            "bathtub",
+            0.0004216124943923205
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/bath/w1_desk_day_01.mp4",
       "sign": "bath"
     },
@@ -184,26 +184,26 @@
       },
       "auto": {
         "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.46573519627411847,
+        "n_frames": 55,
+        "n_hand_frames": 55,
+        "duration": 1.7964071856287425,
         "top": [
           [
-            "address",
-            0.23833444714546204
-          ],
-          [
             "bath",
-            0.2289261817932129
+            0.9939991235733032
           ],
           [
-            "lift",
-            0.1244175061583519
+            "bathtub",
+            0.001180076040327549
+          ],
+          [
+            "address",
+            0.0006970188696868718
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/bath/w1_desk_day_03.mp4",
       "sign": "bath"
     },
@@ -423,10 +423,10 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 18,
+        "reason": "hands_down",
+        "n_frames": 20,
         "n_hand_frames": 6,
-        "duration": 0.5647090087695987,
+        "duration": 0.6311453627424926,
         "top": [
           [
             "give",
@@ -999,22 +999,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.7010866843607592,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.453803395262657,
         "top": [
           [
             "dad",
-            0.9959681034088135
+            0.9763473868370056
           ],
           [
             "donkey",
-            0.002712167100980878
+            0.02017802558839321
           ],
           [
             "grandpa",
-            0.0005439213709905744
+            0.0013664864236488938
           ]
         ],
         "outcome": "accepted"
@@ -1047,22 +1047,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.7012271475081393,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.4542950162784876,
         "top": [
           [
             "dad",
-            0.9190104603767395
+            0.8954469561576843
           ],
           [
             "grandpa",
-            0.07405070215463638
+            0.09333137422800064
           ],
           [
-            "man",
-            0.002610775176435709
+            "donkey",
+            0.0029253582470119
           ]
         ],
         "outcome": "accepted"
@@ -1095,22 +1095,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.6997900629811057,
+        "reason": "end_of_input",
+        "n_frames": 51,
+        "n_hand_frames": 51,
+        "duration": 2.49925022493252,
         "top": [
           [
             "dad",
-            0.9862465858459473
+            0.9908706545829773
           ],
           [
             "donkey",
-            0.003538180375471711
+            0.0023880754597485065
           ],
           [
             "grandpa",
-            0.0025935820303857327
+            0.0015565772773697972
           ]
         ],
         "outcome": "accepted"
@@ -1143,22 +1143,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.7014028056112224,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.4549098196392785,
         "top": [
           [
             "dad",
-            0.9969531297683716
+            0.9855552911758423
           ],
           [
             "donkey",
-            0.0023525231517851353
+            0.01284748874604702
           ],
           [
             "grandpa",
-            0.00023027072893455625
+            0.000575585407204926
           ]
         ],
         "outcome": "accepted"
@@ -1479,22 +1479,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 37,
-        "n_hand_frames": 37,
-        "duration": 1.802704056084126,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.4536805207811714,
         "top": [
           [
             "drink",
-            0.9995148181915283
+            0.9988272786140442
           ],
           [
             "listen",
-            8.467422594549134e-05
+            0.00032516743522137403
           ],
           [
             "hear",
-            2.5764722522580996e-05
+            0.00019527945551089942
           ]
         ],
         "outcome": "accepted"
@@ -1528,26 +1528,26 @@
       },
       "auto": {
         "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.46593669917129826,
+        "n_frames": 56,
+        "n_hand_frames": 56,
+        "duration": 1.830465603887243,
         "top": [
           [
-            "before",
-            0.9886537194252014
+            "drink",
+            0.997832715511322
           ],
           [
-            "person",
-            0.0017769774422049522
+            "wolf",
+            0.00014275744615588337
           ],
           [
-            "beside",
-            0.0006243276875466108
+            "elephant",
+            9.509733354207128e-05
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/drink/w1_desk_day_01.mp4",
       "sign": "drink"
     },
@@ -1816,26 +1816,26 @@
       },
       "auto": {
         "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4649000464900046,
+        "n_frames": 69,
+        "n_hand_frames": 69,
+        "duration": 2.258085940094308,
         "top": [
           [
-            "wait",
-            0.5617867708206177
+            "finish",
+            0.9773862361907959
           ],
           [
             "finger",
-            0.29728206992149353
+            0.0071007488295435905
           ],
           [
-            "burn",
-            0.054630741477012634
+            "mitten",
+            0.0029345322400331497
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/finish/w1_desk_day_02.mp4",
       "sign": "finish"
     },
@@ -2103,27 +2103,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.7016137115365341,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.4556479903778694,
         "top": [
           [
-            "open",
-            0.6268905401229858
+            "bye",
+            0.5415675044059753
           ],
           [
-            "tree",
-            0.11875941604375839
+            "hello",
+            0.4463214576244354
           ],
           [
-            "swearin",
-            0.07691293954849243
+            "go",
+            0.0018930110381916165
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/hello/w1_desk_day_03.mp4",
       "sign": "hello"
     },
@@ -2151,22 +2151,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 31,
-        "n_hand_frames": 31,
-        "duration": 1.5032319486896828,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.455278849526482,
         "top": [
           [
             "bye",
-            0.9866356253623962
-          ],
-          [
-            "hello",
-            0.006538958288729191
+            0.9914223551750183
           ],
           [
             "go",
-            0.0048407502472400665
+            0.00414406368508935
+          ],
+          [
+            "hello",
+            0.0029217838309705257
           ]
         ],
         "outcome": "accepted"
@@ -2199,22 +2199,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4648846089988378,
+        "reason": "end_of_input",
+        "n_frames": 76,
+        "n_hand_frames": 76,
+        "duration": 2.490453262493774,
         "top": [
           [
-            "grandma",
-            0.8180484771728516
-          ],
-          [
             "mom",
-            0.055745236575603485
+            0.8726744651794434
           ],
           [
-            "bedroom",
-            0.05055081099271774
+            "grandma",
+            0.10129474103450775
+          ],
+          [
+            "listen",
+            0.008651968091726303
           ]
         ],
         "outcome": "accepted"
@@ -2247,22 +2247,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4655338675888671,
+        "reason": "end_of_input",
+        "n_frames": 76,
+        "n_hand_frames": 76,
+        "duration": 2.493931433511788,
         "top": [
           [
             "mom",
-            0.9644461274147034
+            0.9896705746650696
           ],
           [
             "will",
-            0.009178660809993744
+            0.0013060903875157237
           ],
           [
-            "grandma",
-            0.0031005514319986105
+            "bed",
+            0.0010366846108809114
           ]
         ],
         "outcome": "accepted"
@@ -2295,27 +2295,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4668222740913638,
+        "reason": "end_of_input",
+        "n_frames": 75,
+        "n_hand_frames": 75,
+        "duration": 2.4674891630543514,
         "top": [
           [
-            "grandma",
-            0.9990203380584717
+            "mom",
+            0.6309082508087158
           ],
           [
-            "mom",
-            0.00047887000255286694
+            "grandma",
+            0.34582942724227905
           ],
           [
             "will",
-            0.000234837963944301
+            0.02000279352068901
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/mom/w1_desk_day_02.mp4",
       "sign": "mom"
     },
@@ -2343,22 +2343,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.46520901176314217,
+        "reason": "end_of_input",
+        "n_frames": 76,
+        "n_hand_frames": 76,
+        "duration": 2.4921911344454046,
         "top": [
           [
-            "grandma",
-            0.5557247996330261
+            "mom",
+            0.8358638286590576
           ],
           [
-            "bedroom",
-            0.20402580499649048
+            "grandma",
+            0.06232012063264847
           ],
           [
             "listen",
-            0.06180077791213989
+            0.05118034407496452
           ]
         ],
         "outcome": "accepted"
@@ -2392,26 +2392,26 @@
       },
       "auto": {
         "reason": "motion_lull",
-        "n_frames": 20,
-        "n_hand_frames": 20,
-        "duration": 0.6323637089795646,
+        "n_frames": 51,
+        "n_hand_frames": 51,
+        "duration": 1.6641150236304332,
         "top": [
           [
             "mom",
-            0.9266489148139954
+            0.9619282484054565
           ],
           [
             "will",
-            0.04107802361249924
+            0.014317196793854237
           ],
           [
-            "grandma",
-            0.018419191241264343
+            "bed",
+            0.010778773576021194
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/mom/w1_desk_day_04.mp4",
       "sign": "mom"
     },
@@ -2439,22 +2439,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 28,
-        "n_hand_frames": 28,
-        "duration": 1.3529087538207145,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.455278849526482,
         "top": [
           [
             "no",
-            0.9597651958465576
+            0.9735696315765381
           ],
           [
             "horse",
-            0.03636743128299713
+            0.024850349873304367
           ],
           [
             "bite",
-            0.0009059780859388411
+            0.0003156080492772162
           ]
         ],
         "outcome": "accepted"
@@ -2487,22 +2487,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 26,
-        "n_hand_frames": 26,
-        "duration": 1.2515644555694618,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.453066332916145,
         "top": [
           [
             "no",
-            0.9821876287460327
+            0.9771333932876587
           ],
           [
             "horse",
-            0.015701930969953537
+            0.021225301548838615
           ],
           [
-            "bite",
-            0.0003317533410154283
+            "dog",
+            0.00027017618413083255
           ]
         ],
         "outcome": "accepted"
@@ -2535,22 +2535,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.7011569088996845,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.454049181148896,
         "top": [
           [
             "no",
-            0.9672564268112183
+            0.9724287390708923
           ],
           [
             "horse",
-            0.028050700202584267
+            0.025283033028244972
           ],
           [
             "dog",
-            0.0005253144772723317
+            0.00022530904971063137
           ]
         ],
         "outcome": "accepted"
@@ -2583,22 +2583,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.7011920264449564,
+        "reason": "end_of_input",
+        "n_frames": 51,
+        "n_hand_frames": 51,
+        "duration": 2.5042572373034155,
         "top": [
           [
             "no",
-            0.7896533012390137
+            0.9730238318443298
           ],
           [
             "horse",
-            0.1430204212665558
+            0.024604402482509613
           ],
           [
-            "lamp",
-            0.011117612943053246
+            "dog",
+            0.00036183177144266665
           ]
         ],
         "outcome": "accepted"
@@ -2631,22 +2631,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.7011217948717948,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.453926282051282,
         "top": [
           [
             "no",
-            0.8317327499389648
+            0.9336110353469849
           ],
           [
             "horse",
-            0.13982003927230835
+            0.06392762064933777
           ],
           [
             "dog",
-            0.006030222401022911
+            0.00041789538227021694
           ]
         ],
         "outcome": "accepted"
@@ -2728,26 +2728,26 @@
       },
       "auto": {
         "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4646223284216116,
+        "n_frames": 67,
+        "n_hand_frames": 67,
+        "duration": 2.190362405416169,
         "top": [
           [
-            "elephant",
-            0.22959047555923462
+            "open",
+            0.34253618121147156
           ],
           [
-            "brown",
-            0.11841192841529846
+            "wall",
+            0.18249370157718658
           ],
           [
-            "bee",
-            0.0682341679930687
+            "bad",
+            0.03019743226468563
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/open/w1_desk_day_01.mp4",
       "sign": "open"
     },
@@ -2775,27 +2775,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4648074369189907,
+        "reason": "end_of_input",
+        "n_frames": 76,
+        "n_hand_frames": 76,
+        "duration": 2.49003984063745,
         "top": [
           [
-            "bee",
-            0.79087895154953
+            "open",
+            0.9862695336341858
           ],
           [
-            "quiet",
-            0.04001649096608162
+            "cat",
+            0.0011260146275162697
           ],
           [
-            "brown",
-            0.033635448664426804
+            "book",
+            0.0008018420776352286
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/open/w1_desk_day_02.mp4",
       "sign": "open"
     },
@@ -2919,27 +2919,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.46409865411390305,
+        "reason": "end_of_input",
+        "n_frames": 76,
+        "n_hand_frames": 76,
+        "duration": 2.4862427898959094,
         "top": [
           [
-            "minemy",
-            0.9752487540245056
-          ],
-          [
             "please",
-            0.007580966223031282
+            0.9945641756057739
           ],
           [
-            "time",
-            0.0023771701380610466
+            "enjoy",
+            0.000615920580457896
+          ],
+          [
+            "home",
+            0.0004061694780830294
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/please/w1_desk_day_00.mp4",
       "sign": "please"
     },
@@ -3112,26 +3112,26 @@
       },
       "auto": {
         "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.465843676172096,
+        "n_frames": 68,
+        "n_hand_frames": 68,
+        "duration": 2.2293947359664594,
         "top": [
           [
-            "minemy",
-            0.7620251178741455
+            "please",
+            0.9974796175956726
           ],
           [
-            "arm",
-            0.12339213490486145
+            "enjoy",
+            0.0012246336555108428
           ],
           [
-            "my",
-            0.010944675654172897
+            "home",
+            4.1956522181862965e-05
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/please/w1_desk_day_04.mp4",
       "sign": "please"
     },
@@ -3399,27 +3399,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4650081376424087,
+        "reason": "end_of_input",
+        "n_frames": 76,
+        "n_hand_frames": 76,
+        "duration": 2.4911150230843324,
         "top": [
           [
-            "bad",
-            0.43698522448539734
+            "thankyou",
+            0.8507865071296692
           ],
           [
-            "yawn",
-            0.28515881299972534
+            "there",
+            0.0994654968380928
           ],
           [
-            "oops",
-            0.15835978090763092
+            "boat",
+            0.009456370957195759
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/thankyou/w1_desk_day_00.mp4",
       "sign": "thankyou"
     },
@@ -3447,27 +3447,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.46474571770017264,
+        "reason": "hands_down",
+        "n_frames": 55,
+        "n_hand_frames": 49,
+        "duration": 1.7925906254149515,
         "top": [
           [
+            "thankyou",
+            0.9034560322761536
+          ],
+          [
             "bad",
-            0.5062001347541809
+            0.03939132019877434
           ],
           [
-            "yawn",
-            0.20955607295036316
-          ],
-          [
-            "napkin",
-            0.11463391035795212
+            "there",
+            0.005866276565939188
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/thankyou/w1_desk_day_01.mp4",
       "sign": "thankyou"
     },
@@ -3495,27 +3495,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4648846089988378,
+        "reason": "end_of_input",
+        "n_frames": 76,
+        "n_hand_frames": 71,
+        "duration": 2.490453262493774,
         "top": [
           [
+            "thankyou",
+            0.9937759637832642
+          ],
+          [
             "bad",
-            0.3111262023448944
+            0.0020972290076315403
           ],
           [
-            "yawn",
-            0.29820725321769714
-          ],
-          [
-            "napkin",
-            0.18352174758911133
+            "bedroom",
+            0.000356828240910545
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/thankyou/w1_desk_day_02.mp4",
       "sign": "thankyou"
     },
@@ -3544,26 +3544,26 @@
       },
       "auto": {
         "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.46473029045643155,
+        "n_frames": 39,
+        "n_hand_frames": 31,
+        "duration": 1.2614107883817431,
         "top": [
           [
-            "napkin",
-            0.3542463779449463
+            "bad",
+            0.7631605863571167
+          ],
+          [
+            "thankyou",
+            0.18768537044525146
           ],
           [
             "oops",
-            0.2567598521709442
-          ],
-          [
-            "yawn",
-            0.16433867812156677
+            0.012196741998195648
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 3,
+      "auto_n_events": 2,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/thankyou/w1_desk_day_03.mp4",
       "sign": "thankyou"
     },
@@ -3591,27 +3591,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4649309245483528,
+        "reason": "hands_down",
+        "n_frames": 33,
+        "n_hand_frames": 27,
+        "duration": 1.0626992561105206,
         "top": [
           [
+            "thankyou",
+            0.935278594493866
+          ],
+          [
             "oops",
-            0.2935214042663574
+            0.016828296706080437
           ],
           [
             "napkin",
-            0.28191760182380676
-          ],
-          [
-            "bad",
-            0.18835368752479553
+            0.012852196581661701
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 3,
+      "auto_n_events": 2,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/thankyou/w1_desk_day_04.mp4",
       "sign": "thankyou"
     },
@@ -3639,27 +3639,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4649000464900046,
+        "reason": "end_of_input",
+        "n_frames": 76,
+        "n_hand_frames": 76,
+        "duration": 2.4905359633393105,
         "top": [
           [
             "tree",
-            0.8568098545074463
+            0.9982707500457764
+          ],
+          [
+            "fireman",
+            0.0003531317925080657
           ],
           [
             "morning",
-            0.05803326517343521
-          ],
-          [
-            "sick",
-            0.02309088408946991
+            0.00012342972331680357
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/tree/w1_desk_day_00.mp4",
       "sign": "tree"
     },
@@ -3688,26 +3688,26 @@
       },
       "auto": {
         "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.465085376386951,
+        "n_frames": 64,
+        "n_hand_frames": 64,
+        "duration": 2.0928841937412797,
         "top": [
           [
             "tree",
-            0.7271326780319214
+            0.9985841512680054
+          ],
+          [
+            "fireman",
+            0.0003694473998621106
           ],
           [
             "flag",
-            0.11262276023626328
-          ],
-          [
-            "sick",
-            0.05285917595028877
+            0.0002773090673144907
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 3,
+      "auto_n_events": 2,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/tree/w1_desk_day_01.mp4",
       "sign": "tree"
     },
@@ -3927,22 +3927,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 25,
-        "n_hand_frames": 25,
-        "duration": 0.7971303308090874,
+        "reason": "end_of_input",
+        "n_frames": 76,
+        "n_hand_frames": 76,
+        "duration": 2.491032283778398,
         "top": [
           [
             "water",
-            0.9988428354263306
+            0.9978783130645752
+          ],
+          [
+            "talk",
+            0.0002306057867826894
           ],
           [
             "red",
-            0.00024229800328612328
-          ],
-          [
-            "pretend",
-            3.6687102692667395e-05
+            0.00014038545486982912
           ]
         ],
         "outcome": "accepted"
@@ -4023,22 +4023,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 18,
-        "n_hand_frames": 18,
-        "duration": 0.8526431939010933,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.457618617714916,
         "top": [
           [
-            "feet",
-            0.19123221933841705
-          ],
-          [
             "water",
-            0.09029152244329453
+            0.27250921726226807
           ],
           [
-            "find",
-            0.07860718667507172
+            "interpret",
+            0.08296602964401245
+          ],
+          [
+            "frenchfries",
+            0.04493207857012749
           ]
         ],
         "outcome": "accepted"
@@ -4071,22 +4071,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 16,
-        "n_hand_frames": 16,
-        "duration": 0.7521813258449503,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.4571256644268376,
         "top": [
           [
-            "frenchfries",
-            0.3976045250892639
+            "relationship",
+            0.15879443287849426
           ],
           [
-            "find",
-            0.12954819202423096
+            "frenchfries",
+            0.13511112332344055
           ],
           [
             "meat",
-            0.1201668307185173
+            0.12337931990623474
           ]
         ],
         "outcome": "accepted"
@@ -4167,27 +4167,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.46380652642040754,
+        "reason": "hands_down",
+        "n_frames": 46,
+        "n_hand_frames": 38,
+        "duration": 1.4908066920655956,
         "top": [
           [
+            "wet",
+            0.29268568754196167
+          ],
+          [
+            "want",
+            0.22542518377304077
+          ],
+          [
             "wait",
-            0.3295574486255646
-          ],
-          [
-            "many",
-            0.30777525901794434
-          ],
-          [
-            "well",
-            0.0760297179222107
+            0.1743716299533844
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 3,
+      "auto_n_events": 2,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/wet/w1_desk_day_01.mp4",
       "sign": "wet"
     },
@@ -4311,27 +4311,27 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 15,
-        "n_hand_frames": 15,
-        "duration": 0.4663246952235028,
+        "reason": "hands_down",
+        "n_frames": 53,
+        "n_hand_frames": 40,
+        "duration": 1.7320631536872961,
         "top": [
           [
-            "many",
-            0.3132621943950653
+            "wet",
+            0.9582573771476746
           ],
           [
-            "wait",
-            0.18155807256698608
+            "soft",
+            0.0069476524367928505
           ],
           [
-            "well",
-            0.1565888673067093
+            "want",
+            0.006240919232368469
           ]
         ],
         "outcome": "accepted"
       },
-      "auto_n_events": 2,
+      "auto_n_events": 1,
       "file": "/home/ben/school/ml-project/asl-recognition/data/word_videos/wet/w1_desk_day_04.mp4",
       "sign": "wet"
     },
@@ -4647,22 +4647,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 38,
-        "n_hand_frames": 38,
-        "duration": 1.8541718867451769,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.455524931094964,
         "top": [
           [
             "yes",
-            0.9913386106491089
+            0.9875002503395081
           ],
           [
             "dribble",
-            0.002866852330043912
+            0.006787788588553667
           ],
           [
             "down",
-            0.0014651842648163438
+            0.000879741448443383
           ]
         ],
         "outcome": "accepted"
@@ -4743,22 +4743,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 38,
-        "n_hand_frames": 38,
-        "duration": 1.8533360048086556,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.4544179523141656,
         "top": [
           [
             "yes",
-            0.9760156869888306
+            0.9782209992408752
           ],
           [
             "down",
-            0.011459537781774998
+            0.008453750982880592
           ],
           [
             "dribble",
-            0.0022241154219955206
+            0.004400403704494238
           ]
         ],
         "outcome": "accepted"
@@ -4791,22 +4791,22 @@
         "outcome": "accepted"
       },
       "auto": {
-        "reason": "motion_lull",
-        "n_frames": 49,
-        "n_hand_frames": 49,
-        "duration": 2.4039665447989185,
+        "reason": "end_of_input",
+        "n_frames": 50,
+        "n_hand_frames": 50,
+        "duration": 2.454049181148896,
         "top": [
           [
             "yes",
-            0.987841784954071
+            0.9881347417831421
           ],
           [
             "dribble",
-            0.0037379777058959007
+            0.003329255385324359
           ],
           [
             "down",
-            0.0009346139268018305
+            0.0012542330659925938
           ]
         ],
         "outcome": "accepted"
