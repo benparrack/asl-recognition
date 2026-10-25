@@ -81,6 +81,9 @@ def score_file(frames, times, wh, clf, params) -> dict:
     classified = [e for e in events if e["top"]]
     out["auto"] = classified[0] if classified else (events[0] if events else None)
     out["auto_n_events"] = len(events)
+    for e in (out["whole_clip"], out["auto"]):      # frames/times are kept for teaching, not JSON
+        if e:
+            e.pop("frames", None), e.pop("times", None)
     return out
 
 
@@ -93,12 +96,16 @@ def main():
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--dir", type=Path, default=config.DATA_DIR / "word_videos")
     parser.add_argument("--holistic-complexity", type=int, default=1, choices=[0, 1, 2])
+    parser.add_argument("--vocab", choices=["all", "gislr"], default="all",
+                        help="gislr: only guess GISLR's 250 signs (labels 0..249)")
     parser.add_argument("--out", type=Path, default=config.RESULTS_DIR / "words_personal_eval.json")
     args = parser.parse_args()
 
     import mediapipe as mp
     model, ckpt = load_word_checkpoint(args.checkpoint, config.DEVICE)
     clf = WordClassifier(model, ckpt, config.DEVICE)
+    if args.vocab == "gislr":
+        clf.limit(ckpt["classes"][:250])
     params = SegParams(min_confidence=0.0)          # report every guess; scoring decides
     known = set(ckpt["classes"])
 

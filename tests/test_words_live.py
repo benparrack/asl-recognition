@@ -82,6 +82,20 @@ def test_manual_replay_matches_offline_evaluation(live):
         assert len(event["top"]) == 3
 
 
+def test_limit_renormalises_over_the_allowed_signs(live):
+    clf, val, cache, offline = live
+    frames, t = np.stack(rec_frames(load_sequence(cache, val.iloc[0]))), None
+    keep = list(np.argsort(-offline[0])[1:3])               # the 2nd and 3rd guesses only
+    clf.limit([clf.classes[i] for i in keep])
+    try:
+        p = clf.probs(frames, t)
+    finally:
+        clf.limit(None)
+    expect = np.zeros_like(offline[0])
+    expect[keep] = offline[0][keep] / offline[0][keep].sum()
+    np.testing.assert_allclose(p, expect, atol=1e-5)
+
+
 def rec_frames(seq):
     raw = selected_to_raw(seq)
     return [hf.frame_from_holistic(fake_holistic_results(raw, i)) for i in range(len(seq))]

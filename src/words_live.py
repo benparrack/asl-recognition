@@ -70,6 +70,11 @@ class WordClassifier:
         self.classes: list[str] = ckpt["classes"]
         self.max_len: int = ckpt["max_len"]
         self.n_channels: int = ckpt["n_channels"]
+        self.allowed = None                    # bool mask over classes; None = every sign
+
+    def limit(self, signs=None):
+        """Only ever guess these signs (None lifts the limit)."""
+        self.allowed = None if signs is None else np.isin(self.classes, list(signs))
 
     def features(self, frames: np.ndarray, timestamps=None):
         if timestamps is not None and len(frames) > 1:
@@ -82,6 +87,8 @@ class WordClassifier:
         feats, mask, _ = self.features(frames, timestamps)
         logits = self.model(torch.from_numpy(feats)[None].to(self.device),
                             torch.from_numpy(mask)[None].to(self.device))
+        if self.allowed is not None:
+            logits = logits.masked_fill(~torch.from_numpy(self.allowed).to(logits.device), float("-inf"))
         return torch.softmax(logits.float(), 1)[0].cpu().numpy()
 
     def top_k(self, frames, timestamps=None, k: int = 3) -> list[tuple[str, float]]:
