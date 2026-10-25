@@ -508,3 +508,24 @@ Ben's top-1 and adds 2,081 signs at 0.735. Through the live path
 sign 0.92 (r3 0.93), untaught signs unchanged at 0.76. Auto-segmented clips
 drop 0.63 → 0.57 (same segments; trimmed clips find more look-alikes in the
 bigger vocabulary), so segmentation is the next thing to fix.
+
+## Segmentation: a lull only ends a sign after the hands moved (2026-10-25)
+
+Auto mode on Ben's clips (blend): first event right 57/100, whole clip 76.
+71 events ended on a motion lull, many at exactly `min_frames` (15): the hands
+come up and hold still before the sign, the lull streak builds during that
+hold, and the clip is cut at frame 15 as its own 0.5 s "sign" (bath → address
+then bath, mom → grandma). 13 of the 19 auto-only misses were this.
+`WordRecogniser` now lets a lull end a clip only once the hands have moved
+(speed > 2 × `lull_speed` for 3 frames, the same "moving" test that re-arms it).
+
+| Ben's clips, auto top-1 / top-3 | before | after | whole clip |
+|---|---|---|---|
+| blend (SignDesk) | 0.57 | **0.75** / 0.87 | 0.76 / 0.86 |
+| `aslc_r3` | 0.63 | **0.75** / 0.84 | 0.76 / 0.83 |
+
+One event per clip: 0.70 → 0.86. Segmenter cost is now ~1 point. Caveat: the
+fix came from looking at these same clips (no held-out half), so 0.75 is a bit
+optimistic. A hand held perfectly still from the start now ends at
+`max_frames` (4 s) instead of a lull; dropping the hands still ends it at once.
+

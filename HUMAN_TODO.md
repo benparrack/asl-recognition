@@ -37,7 +37,7 @@ profile taught" turns it off to compare.
 (`words_transformer_full_aslc_all_r3_best.pt`) blended with `aslc_r3` on the
 250 signs they share (NOTES.md, "Blending"). Your clips: same top-1 as before
 (0.76), better top-3 (0.83 -> 0.86), 0.92 with one taught example per sign;
-auto-segmented clips are a bit worse (0.63 -> 0.57). The old 250-sign setup:
+auto-segmented clips 0.75 after the segmentation fix (NOTES.md, "Segmentation"). The old 250-sign setup:
 
 ```bash
 python src/dashboard.py --words-checkpoint checkpoints/words_transformer_full_aslc_r3_best.pt --words-blend ''
