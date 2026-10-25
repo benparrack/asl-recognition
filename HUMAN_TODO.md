@@ -31,15 +31,16 @@ your clips from 0.76 to ~0.93 offline; taught signs then show near 100%
 confidence, which is the boost, not certainty. Settings → "Use what this
 profile taught" turns it off to compare.
 
-## 0a. 2,297-sign word model: try it (2026-10-25)
+## 0a. SignDesk now knows 2,297 signs (2026-10-25)
 
-`checkpoints/words_transformer_full_aslc_all_r3_best.pt` knows every ASL
-Citizen sign. On your untaught clips it is worse than the default (0.60 vs
-0.76 top-1, NOTES.md "Full ASL Citizen vocabulary"); teaching one example per
-sign in a profile brings it to ~0.89. To use it:
+`python src/dashboard.py` runs the 2,297-sign model
+(`words_transformer_full_aslc_all_r3_best.pt`) blended with `aslc_r3` on the
+250 signs they share (NOTES.md, "Blending"). Your clips: same top-1 as before
+(0.76), better top-3 (0.83 -> 0.86), 0.92 with one taught example per sign;
+auto-segmented clips are a bit worse (0.63 -> 0.57). The old 250-sign setup:
 
 ```bash
-python src/dashboard.py --words-checkpoint checkpoints/words_transformer_full_aslc_all_r3_best.pt
+python src/dashboard.py --words-checkpoint checkpoints/words_transformer_full_aslc_r3_best.pt --words-blend ''
 ```
 
 Test once, when it is final:

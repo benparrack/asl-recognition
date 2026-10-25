@@ -96,6 +96,25 @@ def test_limit_renormalises_over_the_allowed_signs(live):
     np.testing.assert_allclose(p, expect, atol=1e-5)
 
 
+def test_blend_scores_shared_signs_with_both_models():
+    from words_live import WordBlend
+
+    class Fixed(torch.nn.Module):
+        def __init__(self, logits):
+            super().__init__()
+            self.logits, self.head = torch.tensor([logits]), torch.nn.Sequential()
+
+        def forward(self, x, mask):
+            return self.logits
+
+    big, small = [1.0, 0.0, 2.0, 0.5], [0.0, 3.0]
+    s = WordBlend(Fixed(big), Fixed(small), a=0.5, b=-2)(None, None)[0].numpy()
+    lb, ls = np.log(np.exp(big) / np.exp(big).sum()), np.log(np.exp(small) / np.exp(small).sum())
+    np.testing.assert_allclose(s, [lb[0] + 0.5 * (ls[0] + np.log(2)), lb[1] + 0.5 * (ls[1] + np.log(2)),
+                                   lb[2] - 2, lb[3] - 2], rtol=1e-6)
+    assert s.argmax() == 1        # the small model's pick wins over the big model's ASLC-only top sign
+
+
 def rec_frames(seq):
     raw = selected_to_raw(seq)
     return [hf.frame_from_holistic(fake_holistic_results(raw, i)) for i in range(len(seq))]

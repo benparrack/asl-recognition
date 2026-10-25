@@ -485,3 +485,26 @@ car → ski, dance → fork). Teaching one example per sign closes most of it
 Ben's clips (0.71 vs 0.76; 100 clips, SE ≈ 4 pts). So **`aslc_r3` stays the
 SignDesk default**; `aslc_all_r3` is the model for the full vocabulary. Next
 lever: more of Ben's own examples, or a second signer, not more settings.
+
+## Blending: 2,297 signs without losing the common 250 (2026-10-25)
+
+`WordBlend` (words_live.py) runs both models on each clip and scores
+`log p_big(c) + a·log(250·p_r3(c))` for the 250 shared signs, `log p_big(c) + b`
+for the 2,081 ASLC-only ones (`b` = how much less likely an uncommon sign is).
+Grid on val (a ∈ 0.25..3, b ∈ 0..−8); a = 0.5 was best at every b. Ben picked
+b = −2. Ben's clips are all common signs, so they always favour lower b.
+
+| | Ben top-1 / top-3 | ASLC-only signs (val) | ASLC 216 (val) | GISLR val |
+|---|---|---|---|---|
+| `aslc_all_r3` alone | 0.60 / 0.71 | **0.810** | 0.882 | 0.671 |
+| blend b = 0 | 0.71 / 0.79 | 0.785 | 0.934 | 0.686 |
+| **blend b = −2 (SignDesk)** | **0.76** / 0.86 | 0.735 | 0.957 | **0.687** |
+| blend b = −6 | 0.81 / 0.88 | 0.433 | 0.963 | 0.687 |
+| `aslc_r3` alone | 0.76 / 0.83 | — | 0.932 | 0.645 |
+
+The blend beats `aslc_r3` on its own signs (two models agreeing), keeps
+Ben's top-1 and adds 2,081 signs at 0.735. Through the live path
+(`eval_word_videos.py --blend`): whole-clip 0.76 / 0.86, one taught example per
+sign 0.92 (r3 0.93), untaught signs unchanged at 0.76. Auto-segmented clips
+drop 0.63 → 0.57 (same segments; trimmed clips find more look-alikes in the
+bigger vocabulary), so segmentation is the next thing to fix.

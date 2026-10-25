@@ -49,7 +49,7 @@ from data.landmarks import build_detector, normalise_landmarks
 from demo import PredictionSmoother, letters_step, load_model, words_step
 from motion_gate import GateParams, MotionGate, hand_speed_v2, load_motion_classifier
 from personal import LETTER_TAKE_FRAMES, Adapter, ProfileStore, Samples, letter_prototypes
-from words_live import WordClassifier, WordRecogniser, SegParams
+from words_live import WordClassifier, WordRecogniser, SegParams, load_words
 
 STATE_DIR = config.DATA_DIR / "dashboard"
 # Smoothed hand speed (hand-lengths/s) above which a letter isn't being held:
@@ -337,7 +337,7 @@ def camera_indices() -> list[int]:
 class Engine:
     def __init__(self, letters_checkpoint, motion_checkpoint=None, words_checkpoint=None,
                  holistic_complexity: int = 1, video: str | None = None,
-                 state_dir: Path = STATE_DIR):
+                 state_dir: Path = STATE_DIR, words_blend=None):
         self.lock = threading.RLock()
         self.cond = threading.Condition(self.lock)
         self.device = config.DEVICE
@@ -362,14 +362,14 @@ class Engine:
                        "words": None, "device": str(self.device)}
         if words_checkpoint:
             import mediapipe as mp
-            from evaluate_words import load_word_checkpoint
-            wmodel, wckpt = load_word_checkpoint(str(words_checkpoint), self.device)
+            wmodel, wckpt = load_words(words_checkpoint, self.device, words_blend)
             self.words = WordRecogniser(WordClassifier(Adapter(wmodel, beta=40, offset=0.3),
                                                        wckpt, self.device), SegParams())
             self.holistic = mp.solutions.holistic.Holistic(
                 static_image_mode=False, model_complexity=holistic_complexity)
             self.word_classes = list(wckpt["classes"])
-            self.models["words"] = f"{Path(words_checkpoint).stem} ({len(self.word_classes)} signs)"
+            self.models["words"] = f"{Path(words_checkpoint).stem} ({len(self.word_classes)} signs)" + (
+                f" + {Path(words_blend).stem}" if words_blend else "")
 
         self.profiles = ProfileStore(self.state_dir)
         self.settings = Settings()

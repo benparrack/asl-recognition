@@ -40,8 +40,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import config  # noqa: E402
 from data import holistic_features as hf  # noqa: E402
-from evaluate_words import load_word_checkpoint  # noqa: E402
-from words_live import SegParams, WordClassifier, WordRecogniser  # noqa: E402
+from words_live import SegParams, WordClassifier, WordRecogniser, load_words  # noqa: E402
 
 VIDEO_EXTS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
 
@@ -96,13 +95,14 @@ def main():
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--dir", type=Path, default=config.DATA_DIR / "word_videos")
     parser.add_argument("--holistic-complexity", type=int, default=1, choices=[0, 1, 2])
+    parser.add_argument("--blend", default=None, help="smaller word model to blend in (WordBlend)")
     parser.add_argument("--vocab", choices=["all", "gislr"], default="all",
                         help="gislr: only guess GISLR's 250 signs (labels 0..249)")
     parser.add_argument("--out", type=Path, default=config.RESULTS_DIR / "words_personal_eval.json")
     args = parser.parse_args()
 
     import mediapipe as mp
-    model, ckpt = load_word_checkpoint(args.checkpoint, config.DEVICE)
+    model, ckpt = load_words(args.checkpoint, config.DEVICE, args.blend)
     clf = WordClassifier(model, ckpt, config.DEVICE)
     if args.vocab == "gislr":
         clf.limit(ckpt["classes"][:250])

@@ -160,22 +160,25 @@ def main():
     parser.add_argument("--letters-checkpoint", default=ck / "mlp_pugeault_best.pt")
     parser.add_argument("--motion-checkpoint", default=ck / "motion_v2_best.pt",
                         help="J/Z model; '' to disable")
-    parser.add_argument("--words-checkpoint", default=ck / "words_transformer_full_aslc_r3_best.pt",
+    parser.add_argument("--words-checkpoint", default=ck / "words_transformer_full_aslc_all_r3_best.pt",
                         help="word model; '' to run letters only")
+    parser.add_argument("--words-blend", default=ck / "words_transformer_full_aslc_r3_best.pt",
+                        help="smaller word model that steers the shared signs; '' to use the word model alone")
     parser.add_argument("--holistic-complexity", type=int, default=1, choices=[0, 1, 2])
     parser.add_argument("--video", default=None, help="loop this file instead of the webcam")
     parser.add_argument("--port", type=int, default=8790)
     parser.add_argument("--no-browser", action="store_true", help="don't open a browser tab")
     args = parser.parse_args()
 
-    for name in ("motion_checkpoint", "words_checkpoint"):
+    for name in ("motion_checkpoint", "words_checkpoint", "words_blend"):
         p = getattr(args, name)
         if p and not Path(p).exists():
             print(f"[dashboard] {p} not found; running without it")
             setattr(args, name, None)
 
     engine = Engine(args.letters_checkpoint, args.motion_checkpoint or None,
-                    args.words_checkpoint or None, args.holistic_complexity, args.video)
+                    args.words_checkpoint or None, args.holistic_complexity, args.video,
+                    words_blend=args.words_blend or None)
     try:
         server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(engine, args.port))
     except OSError as e:

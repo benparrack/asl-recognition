@@ -96,6 +96,42 @@ class WordClassifier:
         return [(self.classes[i], float(p[i])) for i in np.argsort(-p)[:k]]
 
 
+
+class WordBlend(torch.nn.Module):
+    """A full-vocabulary model steered by a smaller one on the signs they share
+    (its classes must be the big model's first n):
+
+        score(c) = log p_big(c) + a * log(n * p_small(c))   c < n
+                   log p_big(c) + b                         otherwise
+
+    b < 0 favours the shared signs. a=0.5, b=-2 (NOTES.md, "Blending"): Ben's
+    clips 0.60 -> 0.76, ASLC-only signs 0.81 -> 0.735 on val. `head` is the big
+    model's, so a profile Adapter embeds with the model that knows every sign."""
+
+    def __init__(self, big, small, a: float = 0.5, b: float = -2.0):
+        super().__init__()
+        self.big, self.small, self.a, self.b = big, small, a, b
+        self.head = big.head
+
+    def forward(self, x, mask):
+        s = torch.log_softmax(self.big(x, mask).float(), 1)
+        small = torch.log_softmax(self.small(x, mask).float(), 1)
+        n = small.shape[1]
+        return torch.cat([s[:, :n] + self.a * (small + float(np.log(n))), s[:, n:] + self.b], 1)
+
+
+def load_words(path, device, blend=None):
+    """(model, ckpt) for a word checkpoint, blended with `blend` when given."""
+    from evaluate_words import load_word_checkpoint
+    model, ckpt = load_word_checkpoint(str(path), device)
+    if blend:
+        small, sck = load_word_checkpoint(str(blend), device)
+        n = len(sck["classes"])
+        assert ckpt["classes"][:n] == sck["classes"], f"{blend}: classes must be {path}'s first {n}"
+        assert (sck["feature_set"], sck["max_len"]) == (ckpt["feature_set"], ckpt["max_len"])
+        model = WordBlend(model, small.eval()).eval()
+    return model, ckpt
+
 @dataclass
 class SegParams:
     start_frames: int = 2        # consecutive raised frames to start a clip
