@@ -59,13 +59,9 @@ MOVING_SPEED = 0.8
 # or it's dropped: a stray trace mid-spelling shouldn't land on the next hold.
 MOTION_HOLD_WINDOW = 2.0
 # What the static model reads the end of each motion letter as (Ben's motion_v2
-# clips: J ends I or unsure, Z ends X 89%). A pending J/Z only counts towards
-# its hold while one of these is seen; any other confident letter drops it, e.g.
-# the wrist twist of switching between P and Q.
-MOTION_END_SHAPES = {"J": {"I", None}, "Z": {"X", "D"}}
-# ...but only once it lasts this long: the static model flickers for a frame or
-# two while the hand settles, and that alone used to swap the J/Z for a stray letter.
-MOTION_CONTRA_SECONDS = 0.3
+# clips: J ends I or unsure, Z ends X 89%). Any other confident letter means it
+# wasn't a J/Z, e.g. the wrist twist of switching between P and Q.
+MOTION_END_SHAPES = {"J": {"I"}, "Z": {"X", "D"}}
 
 # GISLR sign names that aren't plain words: (label shown, text added).
 WORD_FORMS = {
@@ -392,8 +388,6 @@ class Engine:
         self.hand = False
         self.motion_recording = False
         self.motion_pending = None                   # (label, confidence, traced at) awaiting its hold
-        self.motion_seen, self.motion_contra = False, None   # its end shape seen; (other letter, since)
-        self.motion_shapes, self.motion_block = set(), set()  # letters seen while held; blocked after it's added
         self.word_status = None
         self.candidates: list[dict] = []
         self.candidates_event = -1
@@ -432,7 +426,6 @@ class Engine:
             params = GateParams.for_classifier(self.motion_clf, min_confidence=s.letters_min_confidence)
             params.arm_still_frames = 4            # a hand moving into frame isn't a J/Z
             params.discard_on_exit = True           # ...nor one leaving it
-            params.hold_seconds = 0.0               # keep static running so the end shape is checked
             self.gate = MotionGate(self.motion_clf, params)
         for m in (self.model, self.words.clf.model if self.words else None):
             if isinstance(m, Adapter):
@@ -560,26 +553,14 @@ class Engine:
         self.motion_recording = bool(gate is not None and gate.recording)
         if gate is not None and gate.event and gate.event["outcome"] == "accepted":
             self.motion_pending = (gate.event["label"], gate.event["confidence"], ts)
-            self.motion_seen, self.motion_contra = False, None
         moving = self._hand_speed(raw, ts, frame.shape[1::-1]) > MOVING_SPEED
         mp = self.motion_pending
-        ends = MOTION_END_SHAPES.get(mp[0], set()) if mp else set()
-        if not mp or letter in ends | {None, mp[0]}:
-            self.motion_contra = None
-        elif self.motion_contra is None or self.motion_contra[0] != letter:
-            self.motion_contra = (letter, ts)
         if mp and (raw is None or ts - mp[2] > MOTION_HOLD_WINDOW + s.letters_hold
-                   or self.motion_contra and ts - self.motion_contra[1] >= MOTION_CONTRA_SECONDS):
+                   or letter not in MOTION_END_SHAPES.get(mp[0], set()) | {None, mp[0]}):
             self.motion_pending = mp = None
-        if raw is None or not mp:
-            self.motion_shapes = set()
-        if raw is None:
-            self.motion_block = set()
         if mp:                                         # hold the end of the J/Z, like a static letter
             self.letter, self.confidence = mp[0], mp[1]
-            self.motion_shapes |= {letter} - {None}
-            self.motion_seen = self.motion_seen or letter in ends
-            letter = mp[0] if self.motion_seen else None
+            letter = mp[0]
         if self.teach and self.teach["kind"] == "letters" and raw is not None and not moving:
             self.teach["vecs"].append(normalise_landmarks(raw))
             if len(self.teach["vecs"]) >= LETTER_TAKE_FRAMES:
@@ -587,18 +568,14 @@ class Engine:
                 self._refresh("letters")
                 self._event(kind="taught", label=self.teach["label"])
                 self.teach = None
-        # the I / X / D a J/Z ends in (or what it's misread as) isn't added after it,
-        # however much the reading flickers, until the hand leaves or another letter is added
-        blocked = self.motion_recording or moving or letter in self.motion_block
-        fired = self.committer.update(None if blocked else letter, ts)
+        fired = self.committer.update(None if self.motion_recording or moving else letter, ts)
         if fired and s.letters_auto_add:
             if mp:
                 self._commit_letter(mp[0], mp[1], "motion")
                 self.motion_pending = None
-                self.motion_block, self.motion_shapes = self.motion_shapes, set()
+                self.committer.suppress()              # nor the I / D handshape it ends in
             else:
                 self._commit_letter(fired, conf, "hold")
-                self.motion_block = set()
 
         self.hand = bbox is not None
         if self.hand:
@@ -779,7 +756,6 @@ class Engine:
         self.committer.reset()
         self.letter, self.confidence, self.motion_recording = None, 0.0, False
         self.motion_pending = None
-        self.motion_shapes, self.motion_block = set(), set()
         if self.gate is not None:
             self._apply_settings()                       # a fresh gate, nothing buffered
         if self.words is not None:
