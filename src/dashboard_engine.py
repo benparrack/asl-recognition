@@ -63,6 +63,9 @@ MOTION_HOLD_WINDOW = 2.0
 # its hold while one of these is seen; any other confident letter drops it, e.g.
 # the wrist twist of switching between P and Q.
 MOTION_END_SHAPES = {"J": {"I", None}, "Z": {"X", "D"}}
+# ...but only once it lasts this long: the static model flickers for a frame or
+# two while the hand settles, and that alone used to swap the J/Z for a stray letter.
+MOTION_CONTRA_SECONDS = 0.3
 
 # GISLR sign names that aren't plain words: (label shown, text added).
 WORD_FORMS = {
@@ -389,6 +392,7 @@ class Engine:
         self.hand = False
         self.motion_recording = False
         self.motion_pending = None                   # (label, confidence, traced at) awaiting its hold
+        self.motion_seen, self.motion_contra = False, None   # its end shape seen; (other letter, since)
         self.word_status = None
         self.candidates: list[dict] = []
         self.candidates_event = -1
@@ -555,14 +559,21 @@ class Engine:
         self.motion_recording = bool(gate is not None and gate.recording)
         if gate is not None and gate.event and gate.event["outcome"] == "accepted":
             self.motion_pending = (gate.event["label"], gate.event["confidence"], ts)
+            self.motion_seen, self.motion_contra = False, None
         moving = self._hand_speed(raw, ts, frame.shape[1::-1]) > MOVING_SPEED
         mp = self.motion_pending
+        ends = MOTION_END_SHAPES.get(mp[0], set()) if mp else set()
+        if not mp or letter in ends | {None, mp[0]}:
+            self.motion_contra = None
+        elif self.motion_contra is None or self.motion_contra[0] != letter:
+            self.motion_contra = (letter, ts)
         if mp and (raw is None or ts - mp[2] > MOTION_HOLD_WINDOW + s.letters_hold
-                   or letter not in MOTION_END_SHAPES.get(mp[0], set()) | {None, mp[0]}):
+                   or self.motion_contra and ts - self.motion_contra[1] >= MOTION_CONTRA_SECONDS):
             self.motion_pending = mp = None
         if mp:                                         # hold the end of the J/Z, like a static letter
             self.letter, self.confidence = mp[0], mp[1]
-            letter = mp[0] if letter in MOTION_END_SHAPES[mp[0]] else None
+            self.motion_seen = self.motion_seen or letter in ends
+            letter = mp[0] if self.motion_seen else None
         if self.teach and self.teach["kind"] == "letters" and raw is not None and not moving:
             self.teach["vecs"].append(normalise_landmarks(raw))
             if len(self.teach["vecs"]) >= LETTER_TAKE_FRAMES:

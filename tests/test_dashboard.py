@@ -347,3 +347,16 @@ def test_traced_j_is_added_once_after_its_end_is_held(tmp_path, monkeypatch):
     run(6.2, 6.5, None, {**j, "label": "Z"})     # a Z trace the static model can't confirm...
     run(6.5, 9.5, None)                          # ...never ends on X/D: dropped, not added
     assert engine.transcript.text == "JDQ" and engine.motion_pending is None
+    run(9.5, 9.7, None, raw=None)
+    run(9.7, 9.8, "I", j)
+    run(9.8, 9.85, "Y")                          # a 2-frame flicker while holding...
+    run(9.85, 10.0, "I")
+    run(10.0, 10.05, None)                       # ...and an unsure frame...
+    run(10.05, 11.0, "I")
+    assert engine.transcript.text == "JDQJ"      # ...don't swap the J for a Y
+    run(11.0, 11.2, None, raw=None)
+    run(11.2, 11.3, "X", {**j, "label": "Z"})
+    run(11.3, 11.35, None)
+    run(11.35, 11.4, "G")
+    run(11.4, 12.4, "X")
+    assert engine.transcript.text == "JDQJZ"
