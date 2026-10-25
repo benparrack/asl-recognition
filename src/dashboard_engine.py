@@ -393,6 +393,7 @@ class Engine:
         self.motion_recording = False
         self.motion_pending = None                   # (label, confidence, traced at) awaiting its hold
         self.motion_seen, self.motion_contra = False, None   # its end shape seen; (other letter, since)
+        self.motion_shapes, self.motion_block = set(), set()  # letters seen while held; blocked after it's added
         self.word_status = None
         self.candidates: list[dict] = []
         self.candidates_event = -1
@@ -570,8 +571,13 @@ class Engine:
         if mp and (raw is None or ts - mp[2] > MOTION_HOLD_WINDOW + s.letters_hold
                    or self.motion_contra and ts - self.motion_contra[1] >= MOTION_CONTRA_SECONDS):
             self.motion_pending = mp = None
+        if raw is None or not mp:
+            self.motion_shapes = set()
+        if raw is None:
+            self.motion_block = set()
         if mp:                                         # hold the end of the J/Z, like a static letter
             self.letter, self.confidence = mp[0], mp[1]
+            self.motion_shapes |= {letter} - {None}
             self.motion_seen = self.motion_seen or letter in ends
             letter = mp[0] if self.motion_seen else None
         if self.teach and self.teach["kind"] == "letters" and raw is not None and not moving:
@@ -581,14 +587,18 @@ class Engine:
                 self._refresh("letters")
                 self._event(kind="taught", label=self.teach["label"])
                 self.teach = None
-        fired = self.committer.update(None if self.motion_recording or moving else letter, ts)
+        # the I / X / D a J/Z ends in (or what it's misread as) isn't added after it,
+        # however much the reading flickers, until the hand leaves or another letter is added
+        blocked = self.motion_recording or moving or letter in self.motion_block
+        fired = self.committer.update(None if blocked else letter, ts)
         if fired and s.letters_auto_add:
             if mp:
                 self._commit_letter(mp[0], mp[1], "motion")
                 self.motion_pending = None
-                self.committer.suppress()              # nor the I / D handshape it ends in
+                self.motion_block, self.motion_shapes = self.motion_shapes, set()
             else:
                 self._commit_letter(fired, conf, "hold")
+                self.motion_block = set()
 
         self.hand = bbox is not None
         if self.hand:
@@ -769,6 +779,7 @@ class Engine:
         self.committer.reset()
         self.letter, self.confidence, self.motion_recording = None, 0.0, False
         self.motion_pending = None
+        self.motion_shapes, self.motion_block = set(), set()
         if self.gate is not None:
             self._apply_settings()                       # a fresh gate, nothing buffered
         if self.words is not None:

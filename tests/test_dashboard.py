@@ -360,3 +360,12 @@ def test_traced_j_is_added_once_after_its_end_is_held(tmp_path, monkeypatch):
     run(11.35, 11.4, "G")
     run(11.4, 12.4, "X")
     assert engine.transcript.text == "JDQJZ"
+    for t in np.arange(12.4, 14.4, 0.3):         # the X it ends in, held with unsure/moving gaps
+        run(t, t + 0.05, None)                   # and flickers, isn't added after the Z
+        run(t + 0.05, t + 0.1, "G")
+        run(t + 0.1, t + 0.3, "X")
+    run(14.4, 15.4, "X")
+    assert engine.transcript.text == "JDQJZ"
+    run(15.4, 15.6, None, raw=None)              # hand gone: X is a letter again
+    run(15.6, 16.6, "X")
+    assert engine.transcript.text == "JDQJZX"
