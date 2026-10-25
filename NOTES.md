@@ -454,3 +454,34 @@ is in frame, camera at face height, sign at chest height.
 
 A suspend/resume cycle mid-training left one run hung (GPU idle, no progress);
 long jobs now run as `systemd-run --user` units via resumable scripts in `logs/`.
+
+## Full ASL Citizen vocabulary: 2,297 signs (2026-10-25)
+
+`preprocess_asl_citizen.py --vocab all` → `data/processed/asl_citizen_all`:
+83,397 videos, 2,297 signs (numbered variants and -CA/-CL classifier forms
+merged; digits that are part of a word kept: 1DOLLAR → onedollar), all 52
+signers, official split (train 35 / val 6 / test 11 signers). One label space
+with GISLR: GISLR's 250 keep labels 0..249, the 2,081 ASLC-only signs follow
+(2,331 classes). ~15 train clips per sign. The 43 GB zip was deleted after the
+cache checked out; re-extracting means downloading it again.
+
+Same recipe as `aslc_r3` (ASLC ×3, 40 ep). ASLC val is now 10,304 videos over
+all signs; "216" = the GISLR signs ASLC has, "limited" = predictions restricted
+to GISLR's 250 (`WordClassifier.limit`, `eval_word_videos.py --vocab gislr`).
+Teaching = one profile example per sign (beta 40, offset 0.3), rotated over
+the 5 clips; untaught = the other half of the signs when half are taught.
+
+| run | classes | GISLR val | ASLC val (all) | ASLC 216 | 216 limited | Ben top-1 | top-3 | Ben, taught | Ben limited |
+|---|---|---|---|---|---|---|---|---|---|
+| `aslc_r3` | 250 | 0.645 | — | 0.932 | 0.932 | **0.76** | 0.83 | **0.93** | 0.76 |
+| `aslc_all_r3` | 2,331 | 0.671 | 0.817 | 0.882 | **0.957** | 0.60 | 0.71 | 0.89 | 0.71 (top-3 0.87) |
+| `aslc_all_r3_w256` | 2,331 | **0.674** | 0.816 | 0.883 | 0.950 | 0.54 | 0.63 | 0.90 | 0.69 |
+
+More signs made a better model (GISLR val +2.6 pts, the shared signs +2.5 pts
+when limited to the same choices), but 9× the choices costs Ben's untaught
+clips 16 points: most new misses go to ASLC-only look-alikes (where → wander,
+car → ski, dance → fork). Teaching one example per sign closes most of it
+(0.89 vs 0.93). Limiting the new model to the 250 still trails `aslc_r3` on
+Ben's clips (0.71 vs 0.76; 100 clips, SE ≈ 4 pts). So **`aslc_r3` stays the
+SignDesk default**; `aslc_all_r3` is the model for the full vocabulary. Next
+lever: more of Ben's own examples, or a second signer, not more settings.

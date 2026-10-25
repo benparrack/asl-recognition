@@ -31,13 +31,23 @@ your clips from 0.76 to ~0.93 offline; taught signs then show near 100%
 confidence, which is the boost, not certainty. Settings → "Use what this
 profile taught" turns it off to compare.
 
-## Paused: full ASL Citizen vocabulary (2,297 signs), 136/434 shards (2026-10-22)
+## 0a. 2,297-sign word model: try it (2026-10-25)
 
-Resume with `logs/aslc_resume.sh` (~10 h of extraction with the lid open, 14
-workers; 18 runs out of RAM). It then trains two word models, scores your
-clips, and deletes `data/external/asl_citizen/ASL_Citizen.zip` (43 GB) only
-after checking that the finished cache loads. Stop again with
-`systemctl --user stop aslc-zip-cleanup words-all aslc-all`; finished shards are kept.
+`checkpoints/words_transformer_full_aslc_all_r3_best.pt` knows every ASL
+Citizen sign. On your untaught clips it is worse than the default (0.60 vs
+0.76 top-1, NOTES.md "Full ASL Citizen vocabulary"); teaching one example per
+sign in a profile brings it to ~0.89. To use it:
+
+```bash
+python src/dashboard.py --words-checkpoint checkpoints/words_transformer_full_aslc_all_r3_best.pt
+```
+
+Test once, when it is final:
+
+```bash
+python src/evaluate_words.py --checkpoint checkpoints/words_transformer_full_aslc_all_r3_best.pt --split test \
+    --extra-cache-dir data/processed/asl_citizen_all --dataset asl_citizen_all
+```
 
 ## 0. Word model trained on GISLR + ASL Citizen: try it live (2026-10-12)
 
@@ -64,11 +74,7 @@ python src/evaluate_words.py --checkpoint checkpoints/words_transformer_full_asl
     --extra-cache-dir data/processed/asl_citizen --dataset asl_citizen
 ```
 
-More signs later: `python src/data/preprocess_asl_citizen.py --vocab all --max-fps 15
---cache-dir data/processed/asl_citizen_all` (~2,731 signs, many hours on this
-laptop; run it as a `systemd-run --user` unit). Training on signs outside
-GISLR's 250 needs a new label space, which isn't built yet. The 46 GB zip is
-kept in `data/external/asl_citizen/` for this.
+More signs: done, see §0a.
 
 ## 1. Record J / Z / NONE motion v2 data
 
