@@ -9,7 +9,7 @@ Run:
 WHY
 ===
 v1 hit 100% val accuracy while learning only handshape: a logistic regression
-on the FIRST FRAME alone also scored 100% held out (NOTES.md, 2026-09-28). A
+on the FIRST FRAME alone also scored 100% held out (docs/NOTES.md, 2026-09-28). A
 headline accuracy can't tell those two situations apart. This script can:
 
 1. Shortcut probes. Leave-one-signer-out logistic regression on train+val

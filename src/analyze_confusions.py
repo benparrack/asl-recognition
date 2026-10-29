@@ -66,7 +66,6 @@ def analyse(run_name: str) -> None:
     # Which classes get over-predicted overall (candidates for "the model's
     # default guess when unsure"), vs which just get missed a lot.
     predicted_totals = cm.sum(axis=0)
-    true_totals = cm.sum(axis=1)
     over_predicted = predicted_totals - np.diag(cm)   # times X was guessed wrongly
     worst_over = np.argsort(-over_predicted)[:3]
     print("  most over-predicted (wrong guesses landing here):",

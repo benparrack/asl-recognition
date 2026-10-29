@@ -28,7 +28,7 @@ motion settles the motion model classifies the whole clip in one shot.
 The checkpoint's `feature_version` picks the behaviour:
   v1 (motion_gru_best.pt)   J/Z only, centroid displacement in image units.
                             Kept for comparison; it learned handshape, not
-                            motion (NOTES.md 2026-09-28).
+                            motion (docs/NOTES.md 2026-09-28).
   v2 (motion_v2_best.pt)    J/Z/NONE on trajectory features, gate threshold in
                             hand-lengths per second (distance-invariant). A NONE
                             result releases the gate at once with no hold, so
@@ -54,8 +54,8 @@ appended to the sentence as a word.
 
 --video PATH reads a file instead of the webcam, using the file's own
 timestamps, so a recorded sign behaves as it would live. With --no-display it
-prints events and runs headless. That's how to test the ~20-sign personal set
-(HUMAN_TODO.md).
+prints events and runs headless. That's how the 100 personal word clips
+in data/word_videos/ were checked.
 
 WHY THE DEBUG VIEW MATTERS
 ==========================

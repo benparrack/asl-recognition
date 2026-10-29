@@ -13,7 +13,6 @@ They're descriptive and never used for training or model selection.
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 
@@ -35,7 +34,7 @@ def load_word_index(cache_dir: Path = config.GISLR_CACHE_DIR) -> tuple[pd.DataFr
     for name in ("index.csv", "split.csv"):
         if not (cache_dir / name).exists():
             raise FileNotFoundError(f"{cache_dir / name} missing. Run "
-                                    "src/data/preprocess_gislr.py first (HUMAN_TODO.md).")
+                                    "src/data/preprocess_gislr.py first (README.md, 'Rebuilding the models').")
     index = pd.read_csv(cache_dir / "index.csv")
     split = pd.read_csv(cache_dir / "split.csv")
     index = index.merge(split, on="participant_id", how="left", validate="many_to_one")

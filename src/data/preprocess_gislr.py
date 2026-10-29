@@ -1,7 +1,7 @@
 """
 Preprocess the GISLR (Kaggle `asl-signs`) landmark parquets into a compact cache.
 
-Run (after the download in HUMAN_TODO.md):
+Run (after the download in README.md, "Rebuilding the models"):
     python src/data/preprocess_gislr.py                  # skip participants already cached
     python src/data/preprocess_gislr.py --overwrite      # redo everything
     python src/data/preprocess_gislr.py --verify-only    # schema check + stats, no cache
@@ -15,12 +15,12 @@ Writes config.GISLR_CACHE_DIR:
     index.csv                 all rows: sequence_id, participant_id, sign, label,
                               shard, offset, n_frames, left_frac, right_frac
     split.csv                 participant_id -> train / val / test
-       results/gislr_schema.json   verified schema + dataset stats (for NOTES.md)
+       results/gislr_schema.json   verified schema + dataset stats (for docs/NOTES.md)
 
 WHY READ FROM THE ZIP
 =====================
 The archive is tens of GB and extracting it roughly doubles that, which breaks
-the ">20 GB free" headroom on this machine (DECISIONS.md). zipfile gives random
+the ">20 GB free" headroom on this machine (docs/DECISIONS.md). zipfile gives random
 access to members, so each worker opens the archive and reads only its own
 participant's parquets. An extracted directory works too, if one exists.
 
@@ -84,7 +84,7 @@ class GislrSource:
         else:
             raise FileNotFoundError(
                 f"No GISLR data in {self.raw_dir}: expected train.csv or {ZIP_NAME}. "
-                "See HUMAN_TODO.md for the download command.")
+                "See README.md, 'Rebuilding the models', for the download command.")
 
     def _open(self, rel: str):
         if self.kind == "dir":

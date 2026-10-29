@@ -6,6 +6,7 @@ torchvision>=0.15
 numpy
 pandas
 pillow
+pyarrow              # GISLR parquets
 
 # Landmarks + webcam
 mediapipe==0.10.14   # 0.10.31+ broke the legacy solutions API
@@ -15,5 +16,6 @@ opencv-python
 scikit-learn
 matplotlib
 
-# Exploration
+# Tests and exploration
+pytest
 jupyterlab

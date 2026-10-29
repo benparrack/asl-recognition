@@ -3,7 +3,7 @@ Synthetic-data checks for the motion v2 feature pipeline.
 
 These verify the PIPELINE (trajectory survives, invariances hold, a model can
 learn from trajectory alone). They say nothing about accuracy on a real hand --
-that needs Ben's recordings (HUMAN_TODO.md).
+that needs Ben's recordings (docs/NOTES.md, "J/Z motion v2 trained").
 """
 
 import numpy as np

@@ -1,6 +1,6 @@
 """Put the repo root (config.py) and src/ (the `data`/`models` packages) on
 sys.path, src/ FIRST so `import data` resolves to src/data, not the dataset
-directory data/ at the repo root (see PROJECT_HANDOFF.md §3)."""
+directory data/ at the repo root (docs/archive/PROJECT_HANDOFF.md §3)."""
 
 import sys
 from pathlib import Path

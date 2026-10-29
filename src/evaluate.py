@@ -1,7 +1,8 @@
 """
-Final evaluation. Run this ONCE per model, at the end.
+Confusion matrix, per-class metrics and confusable-group analysis for a letters model.
 
-Run:  python src/evaluate.py --checkpoint checkpoints/cnn_best.pt
+Run:  python src/evaluate.py --checkpoint checkpoints/mlp_pugeault_best.pt               # val
+      python src/evaluate.py --checkpoint checkpoints/mlp_pugeault_best.pt --split test  # ONCE, at the end
 
 Everything here is about producing the figures and tables that go in your report.
 A single accuracy number is a weak result; a confusion matrix showing that your
@@ -196,7 +197,7 @@ def plot_confusion_matrix(cm, classes, out_path, annotate_threshold: float = 0.0
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", required=True)
-    parser.add_argument("--split", default="test", choices=["val", "test"])
+    parser.add_argument("--split", default="val", choices=["val", "test"])
     args = parser.parse_args()
 
     device = config.DEVICE

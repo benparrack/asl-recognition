@@ -7,7 +7,7 @@ Run (after downloading ASL_Citizen.zip to config.ASL_CITIZEN_ZIP):
     python src/data/preprocess_asl_citizen.py              # skip shards already cached
     python src/data/preprocess_asl_citizen.py --limit 2    # 2 shards, timing check
 
-Why: GISLR almost never has the second hand (NOTES.md). A 27-video sample of
+Why: GISLR almost never has the second hand (docs/NOTES.md). A 27-video sample of
 ASL Citizen had both hands on every frame with hands up for two-handed signs.
 
 Videos go through the live path (eval_word_videos.video_landmarks: Holistic on

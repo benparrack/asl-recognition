@@ -7,7 +7,7 @@ WHY v2 EXISTS
 v1 fed the GRU per-frame `normalise_landmarks()` vectors: wrist at the origin,
 unit scale. That throws away where the hand IS, so the only thing left for the
 model to learn was handshape -- and handshape alone separates J (I-shape) from
-Z (1-shape) at 100% (NOTES.md, 2026-09-28). The model never needed motion.
+Z (1-shape) at 100% (docs/NOTES.md, 2026-09-28). The model never needed motion.
 
 v2 keeps handshape (so the model can still use it where it's legitimate) but
 adds explicit TRAJECTORY channels that survive the normalisation:

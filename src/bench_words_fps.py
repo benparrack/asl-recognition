@@ -63,7 +63,7 @@ def bench_holistic(frames, complexity: int) -> dict:
     t0 = time.perf_counter()
     for f in frames:
         r = holistic.process(cv2.cvtColor(f, cv2.COLOR_BGR2RGB))
-        frame = hf.frame_from_holistic(r)                    # the adapter is part of the cost
+        hf.frame_from_holistic(r)                            # the adapter is part of the cost
         pose += r.pose_landmarks is not None
         hand += (r.left_hand_landmarks is not None) or (r.right_hand_landmarks is not None)
     dt = (time.perf_counter() - t0) / len(frames)

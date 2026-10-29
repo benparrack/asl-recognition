@@ -7,7 +7,6 @@ import argparse
 import numpy as np
 import torch
 
-import config
 from conftest import write_synthetic_motion_dataset
 from data.motion_dataset_v2 import load_motion_v2_metadata
 

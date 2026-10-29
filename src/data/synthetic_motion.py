@@ -4,7 +4,7 @@ Synthetic hand-landmark clips for OFFLINE verification of the motion pipeline.
 These check that the code does what it claims (trajectory survives
 featurisation, invariances hold, the gate segments and classifies a stream),
 not that anything works on a real hand. Real-world accuracy only comes from
-Ben's recordings -- see HUMAN_TODO.md.
+Ben's recordings (docs/NOTES.md, "J/Z motion v2 trained").
 
 A clip is a fixed handshape template (21 landmarks) translated along a path in
 image coordinates, in exactly the raw format capture_motion_v2.py saves:

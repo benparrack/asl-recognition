@@ -258,7 +258,7 @@ class Samples:
 
     def counts(self) -> dict:
         letters = {}
-        for y, t in {(y, int(t)) for y, t in zip(self.ly, self.ltake)}:
+        for y, _ in {(y, int(t)) for y, t in zip(self.ly, self.ltake)}:
             letters[y] = letters.get(y, 0) + 1
         return {"letters": letters, "words": {k: len(v) for k, v in self.word_files().items()}}
 

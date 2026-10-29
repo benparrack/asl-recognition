@@ -24,7 +24,7 @@ PIPELINE (sequence_to_features)
 5. fit_length()    uniform subsample to MAX_LEN if longer; zero-pad plus mask if
                    shorter.
 
-LIVE-DEMO CONSEQUENCE (see DECISIONS.md)
+LIVE-DEMO CONSEQUENCE (see docs/DECISIONS.md)
 ========================================
 The letters demo cv2.flips the frame BEFORE detection, because its training
 images were mirrored. The words path must NOT. Holistic runs on the raw camera

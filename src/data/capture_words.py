@@ -29,7 +29,7 @@ sys.path.insert(0, str(_ROOT / "src"))
 
 import config  # noqa: E402
 
-# 10 two-handed + 10 one-handed, chosen 2026-10-11 (NOTES.md). mom/dad differ
+# 10 two-handed + 10 one-handed, chosen 2026-10-11 (docs/NOTES.md). mom/dad differ
 # only by location (chin vs forehead).
 DEFAULT_SIGNS = ["book", "shoe", "car", "clean", "finish", "tree", "dance", "open", "wet", "bath",
                  "hello", "thankyou", "yes", "no", "please", "mom", "dad", "water", "drink", "where"]

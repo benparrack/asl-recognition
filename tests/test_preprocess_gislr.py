@@ -81,5 +81,5 @@ def test_schema_check_rejects_bad_parquet():
 
 
 def test_missing_source_explains_what_to_do(tmp_path):
-    with pytest.raises(FileNotFoundError, match="HUMAN_TODO"):
+    with pytest.raises(FileNotFoundError, match="Rebuilding the models"):
         GislrSource(tmp_path)

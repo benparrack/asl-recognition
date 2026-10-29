@@ -32,7 +32,7 @@ def load_motion_v2_metadata(csv_path=config.MOTION_V2_METADATA_CSV) -> pd.DataFr
     if not csv_path.exists():
         raise FileNotFoundError(
             f"No motion v2 metadata at {csv_path}. "
-            "Record clips with src/data/capture_motion_v2.py first (see HUMAN_TODO.md)."
+            "Record clips with src/data/capture_motion_v2.py first (see README.md, 'Rebuilding the models')."
         )
     df = pd.read_csv(csv_path)
     missing = set(REQUIRED_COLUMNS) - set(df.columns)

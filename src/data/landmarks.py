@@ -40,6 +40,25 @@ except ImportError:
     cv2 = None
 
 def letterbox_square(image, size: int, fill=(0, 0, 0)):
+    """
+    Resize to a square WITHOUT distorting the aspect ratio.
+ 
+    The images in this dataset are already tight hand crops, at sizes like
+    84x126 and 155x86. Two ways to make those square:
+ 
+      - cv2.resize() straight to (size, size): STRETCHES. A 155x86 image
+        squashed to square makes a wide hand look narrow, and a 64x146 one makes
+        a narrow hand look wide. The model would then have to learn handshapes
+        across arbitrary distortions -- and worse, the distortion correlates
+        with how the original was framed, so it is a spurious signal.
+ 
+      - letterboxing (this function): scale the longer side to `size`, keep the
+        aspect ratio, and pad the shorter side with a constant colour. Geometry
+        is preserved; the padding is a benign, consistent artifact.
+ 
+    Letterboxing is the standard choice for object detection pipelines for
+    exactly this reason.
+    """
     h, w = image.shape[:2]
     scale = size / max(h, w)
  

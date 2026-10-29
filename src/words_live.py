@@ -108,7 +108,7 @@ class WordBlend(torch.nn.Module):
         score(c) = log p_big(c) + a * log(n * p_small(c))   c < n
                    log p_big(c) + b                         otherwise
 
-    b < 0 favours the shared signs. a=0.5, b=-2 (NOTES.md, "Blending"): Ben's
+    b < 0 favours the shared signs. a=0.5, b=-2 (docs/NOTES.md, "Blending"): Ben's
     clips 0.60 -> 0.76, ASLC-only signs 0.81 -> 0.735 on val. `head` is the big
     model's, so a profile Adapter embeds with the model that knows every sign."""
 

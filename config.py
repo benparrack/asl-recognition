@@ -23,7 +23,7 @@ MOTION_DIR = DATA_DIR / "motion"
 MOTION_METADATA_CSV = MOTION_DIR / "motion_metadata.csv"
 
 # Motion v2 (J/Z/NONE) lives in its own tree so v1 and v2 clips can never mix:
-# v1 stored only wrist-normalised landmarks (trajectory destroyed, see NOTES.md
+# v1 stored only wrist-normalised landmarks (trajectory destroyed, see docs/NOTES.md
 # 2026-09-28), v2 stores raw image-normalised landmarks + timestamps.
 MOTION_V2_DIR = DATA_DIR / "motion_v2"
 MOTION_V2_METADATA_CSV = MOTION_V2_DIR / "motion_v2_metadata.csv"
@@ -115,7 +115,7 @@ LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 1e-4
 NUM_WORKERS = 8          # DataLoader subprocesses; ~= your CPU core count
 
-SEED = 42                # fix every source of randomness -- see src/utils.py
+SEED = 42                # fix every source of randomness -- see set_seed() in src/train.py
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

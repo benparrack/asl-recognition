@@ -1,7 +1,8 @@
 # Decisions log
 
 Append-only. One entry per judgement call made without Ben available, with the
-reasoning in a line or two. Newest at the bottom.
+reasoning in a line or two. Newest at the bottom. "PROMPT §X" is a section of
+[archive/PROMPT.md](archive/PROMPT.md), the brief for the 2026-09-28 run.
 
 ## 2026-09-28 (autonomous session, branch `feature/motion-v2-and-words`)
 

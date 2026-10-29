@@ -44,52 +44,6 @@ import config  # noqa: E402
 from data.landmarks import build_detector, crop_hand, crop_hand_square, letterbox_square  # noqa: E402
 
 
-# ---------------------------------------------------------------- (1) helper
- 
-def letterbox_square(image, size: int, fill=(0, 0, 0)):
-    """
-    Resize to a square WITHOUT distorting the aspect ratio.
- 
-    The images in this dataset are already tight hand crops, at sizes like
-    84x126 and 155x86. Two ways to make those square:
- 
-      - cv2.resize() straight to (size, size): STRETCHES. A 155x86 image
-        squashed to square makes a wide hand look narrow, and a 64x146 one makes
-        a narrow hand look wide. The model would then have to learn handshapes
-        across arbitrary distortions -- and worse, the distortion correlates
-        with how the original was framed, so it is a spurious signal.
- 
-      - letterboxing (this function): scale the longer side to `size`, keep the
-        aspect ratio, and pad the shorter side with a constant colour. Geometry
-        is preserved; the padding is a benign, consistent artifact.
- 
-    Letterboxing is the standard choice for object detection pipelines for
-    exactly this reason.
-    """
-    h, w = image.shape[:2]
-    scale = size / max(h, w)
- 
-    new_w = max(1, int(round(w * scale)))
-    new_h = max(1, int(round(h * scale)))
- 
-    # INTER_AREA for shrinking (averages the source region, avoids aliasing),
-    # INTER_LINEAR for enlarging.
-    interp = cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR
-    resized = cv2.resize(image, (new_w, new_h), interpolation=interp)
- 
-    pad_w = size - new_w
-    pad_h = size - new_h
-    top = pad_h // 2
-    left = pad_w // 2
- 
-    return cv2.copyMakeBorder(
-        resized,
-        top, pad_h - top,
-        left, pad_w - left,
-        cv2.BORDER_CONSTANT, value=fill,
-    )
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Crop raw frames into processed images")
     parser.add_argument("--crop", default="square", choices=["square", "clamp"],
@@ -176,7 +130,7 @@ def main() -> None:
         print("\n  failures by class:")
         print(fail_df.groupby(["label", "reason"]).size().to_string())
         print(f"\n  RECORD THIS: {rate:.1%} detection failure is your pipeline's "
-              f"error floor.\n  Write it in NOTES.md; it belongs in the report.")
+              f"error floor.\n  Write it in docs/NOTES.md; it belongs in the report.")
     else:
         print("[preprocess] no detection failures")
 

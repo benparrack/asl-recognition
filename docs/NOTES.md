@@ -1,4 +1,8 @@
-#Notes for findings througout the developing experience
+# Notes
+
+Dated findings, newest at the bottom. History, not instructions: older entries
+are left as written, so for the current state start with the last few sections
+and the README.
 
 In ben_s1, the first video capture of 80 frames of each test position (FIST, PALM, PEACE),
 it was found the around 6 frames failed the crophand() function.
@@ -10,7 +14,6 @@ the most so I will try to move slower for the future tests, ben_s2 and bens3
 - Cropped with crop_hand_square, padding=0.25, resized to 256px
 - MediaPipe detection failure rate: 2.5%
   -> this is the pipeline's error floor; end-to-end accuracy cannot exceed 97.5%
-EOF
 
 ## Run 1: cnn, 20 epochs, full augmentation
 - best val acc 0.700, train plateaued ~0.78
@@ -218,7 +221,11 @@ pairs actually drive the errors.
   CNN/TransferNet legs still likely need it if the domain gap question is to be
   answered for those too, not just the landmark path.
 
-## Still open
+## Still open (2026-09-11)
+
+Update 2026-10-29: the token was revoked and replaced on 2026-10-12, and the
+live test is done (section above). The letters test split is still untouched.
+
 - Kaggle API token was committed to git history (commit 8745cf2) and pushed to
   origin/main -- needs rotation via Kaggle account settings if not already done.
 - demo.py now supports the landmark model live (`--checkpoint
@@ -272,7 +279,7 @@ pairs actually drive the errors.
   handshape for every class). On synthetic clips, the diagnostic's
   trajectory_only probe is >0.8 and neutralising motion lowers accuracy.
   Shuffling frames changes the trajectory channels.
-- No real v2 numbers yet; that needs Ben's 5 recording sessions (HUMAN_TODO §1–2).
+- No real v2 numbers yet; that needs Ben's 5 recording sessions (archive/HUMAN_TODO.md §1–2).
 
 ## Word recognition (GISLR) status (2026-09-28): pipeline complete, real data blocked
 - **Kaggle `asl-signs` downloads return 403** (listing works, so auth is fine; the
@@ -315,7 +322,7 @@ pairs actually drive the errors.
   This only confirms each feature slice carries what the generator put in it: the
   synthetic signs differ by location and movement by construction, so `location`
   wins. It says **nothing** about the real one-hand vs two-hand question, which
-  needs the real ablation (HUMAN_TODO §3d).
+  needs the real ablation (archive/HUMAN_TODO.md §3d).
 - Headless replay parity: GISLR-format val sequences streamed frame by frame as
   Holistic results objects through `words_live.WordRecogniser` (the demo's path)
   give the same probabilities as `evaluate_words` offline (|Δ| < 1e-5), and auto
@@ -327,7 +334,7 @@ pairs actually drive the errors.
   adds ~2–3 ms per sign on the GPU, once per clip. Blank frames give a
   misleading ~55 FPS because the hand and face stages never run.
 - Tested only offline: segmentation thresholds, the acceptance confidence, and real
-  camera behaviour. See HUMAN_TODO §3f.
+  camera behaviour. See archive/HUMAN_TODO.md §3f.
 
 ## GISLR real data: the second hand is almost never present (2026-10-11)
 

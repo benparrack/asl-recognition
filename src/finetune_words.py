@@ -6,7 +6,7 @@ Run:
     python src/finetune_words.py --checkpoint checkpoints/words_transformer_full_best.pt
     python src/finetune_words.py --checkpoint ... --holdout none     # final model, all sessions
 
-GISLR almost never has the second hand (NOTES.md), so two-handed signs need
+GISLR almost never has the second hand (docs/NOTES.md), so two-handed signs need
 data that does. Keeps the full 250-way head so the demo and every other sign
 keep working; each epoch mixes your clips (repeated, augmented) with a random
 sample of GISLR train sequences so the model doesn't forget the rest.

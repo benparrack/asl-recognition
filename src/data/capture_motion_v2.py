@@ -19,7 +19,7 @@ WHAT CHANGED FROM v1, AND WHY
 =============================
 v1 (capture_motion.py) saved normalise_landmarks() output per frame: wrist at
 the origin, unit scale. That erases the hand's path through space, so the J/Z
-model could only learn handshape (NOTES.md, 2026-09-28). v2 saves:
+model could only learn handshape (docs/NOTES.md, 2026-09-28). v2 saves:
 
     raw         (T, 21, 3) float32, MediaPipe image-normalised coordinates.
                 Frames where no hand was detected are kept as NaN rows rather

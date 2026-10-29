@@ -3,8 +3,8 @@ A small synthetic dataset in the GISLR (Kaggle `asl-signs`) on-disk format.
 
 WHY THIS EXISTS
 ===============
-The real download was blocked (403, competition rules not accepted; see
-HUMAN_TODO.md). Instead of waiting, the word pipeline (preprocess -> features ->
+The real download was blocked at first (403, competition rules not accepted;
+docs/DECISIONS.md). Instead of waiting, the word pipeline (preprocess -> features ->
 training -> evaluation -> live replay) is built and tested end to end against
 data with the competition's documented schema:
 
