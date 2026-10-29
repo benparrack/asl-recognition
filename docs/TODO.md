@@ -40,9 +40,3 @@ python src/evaluate_words.py --checkpoint checkpoints/words_transformer_full_asl
   script puts `src/` first on `sys.path`. Renaming the package (or the dataset
   folder) would remove the bootstrap boilerplate. It's a repo-wide refactor,
   so it hasn't been done.
-
-## Git
-
-`feature/motion-v2-and-words` is pushed to origin. `main` is still at the
-2026-09-11 letters commit, so merge the branch into `main` when you're ready.
-The Kaggle token in old history was revoked on 2026-10-12, so it's harmless.
